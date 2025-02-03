@@ -102,3 +102,9 @@ def setFooter():
         </div>
     """
     st.markdown(footer, unsafe_allow_html=True)
+
+def clearAllSessions():
+    for key in list(st.session_state.keys()):
+        if key != "user_name":
+            del st.session_state[key]
+    st.success("Sessions cleared!")

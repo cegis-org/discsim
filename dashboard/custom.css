@@ -44,9 +44,20 @@ section[data-testid="stSidebar"]
   button {
   width: 100%;
   justify-content: start;
-  border-radius: 10px;
+  border-radius: 0px;
   border: none;
   position: relative;
+}
+
+section[data-testid="stSidebar"]
+  .st-key-functionSelectAdmin
+  div[data-testid="stButtonGroup"]
+  .st-ef {
+  row-gap: 0;
+}
+
+p:has(.downloadLink) {
+  text-align: center;
 }
 
 section[data-testid="stSidebar"]
@@ -93,6 +104,11 @@ div[data-testid="stSidebarContent"] div[data-testid="stSidebarUserContent"] hr {
 
 div[data-testid="stSidebarContent"] div[data-testid="stSidebarUserContent"] h2 {
   padding: 0.2rem 0px 1rem;
+}
+
+section[data-testid="stMain"] div[data-testid="stForm"] {
+  border: transparent;
+  padding: 0;
 }
 
 @media only screen and (max-width: 1100px) {

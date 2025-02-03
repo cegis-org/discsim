@@ -214,7 +214,7 @@ Ensure that the `DATABASE_URL` matches your local PostgreSQL configuration.
 3. **Run the Streamlit app:**
 
    ```bash
-   streamlit run dashboard/app.py --server.port=8501
+   streamlit run dashboard/Home.py --server.port=8501
    ```
 
    The frontend will be accessible at `http://localhost:8501`.

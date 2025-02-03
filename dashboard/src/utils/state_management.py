@@ -23,6 +23,8 @@ def initialize_states():
         st.session_state.uploaded_file = None
     if "uploaded_file_id" not in st.session_state:
         st.session_state.uploaded_file_id = None
+    if "preliminary_test_result_response" not in st.session_state:
+        st.session_state.preliminary_test_result_response = False
 
 def reset_session_states():
     st.session_state.analysis_complete = False
