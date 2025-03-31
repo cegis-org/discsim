@@ -19,49 +19,56 @@ def third_party_sampling_strategy():
     with st.form("third_party_sampling_strategy"):
         col1, col2, col3 = st.columns(3)
         with col1:
-            total_samples = st.number_input("Total samples", min_value=1, value=100, help="Total data points sampled (100-1000). Range > 0")
+            total_samples = st.number_input("Total samples", min_value=1, value=100, help="The total number of data points that the third party will sample (typically between 100-1000).")
         with col2:
-            avg_score = st.slider("Avg truth score", 0.0, 1.0, 0.5, help="Expected avg truth score (0.2-0.5). Higher is worse. 0 < Range < 1")
+            avg_score = st.slider("Avg truth score", 0.0, 1.0, 0.5, help="The expected average truth score across all blocks (typically between 0.2-0.5). Ideally, this should be based on some real data from the sector in question. Higher is worse (i.e. more mismatches between the subordinate and third-party).")
         with col3:
-            sd_across = st.number_input("Standard Deviation across blocks", min_value=0.1,  step=0.1, help="Expected std dev of mean truth score across blocks (0.1-0.5). Range > 0")
+            sd_across = st.number_input("Standard Deviation across blocks", min_value=0.1,  step=0.1, help="The expected standard deviation of mean truth score across blocks (typically between 0.1-0.5). Ideally, this should be based on some real data from the sector in question. The higher this value, the easier it will be to correctly rank the blocks.")
         
         col4, col5, col6 = st.columns(3)
         with col4:
-            sd_within = st.number_input("Standard Deviation within block", min_value=0.1, step= 0.1, help="Expected std dev within a block (0.1-0.5). Range > 0")
+            sd_within = st.number_input("Standard Deviation within block", min_value=0.1, step= 0.1, help="The expected standard deviation across subordinates within a block (typically between 0.1-0.5). Ideally, this should be based on some real data from the sector in question. The higher this value, the more difficult it will be to correctly rank the blocks.")
         with col5:
-            level_test = st.selectbox("Level of test", ["Block", "District", "State"], help="Aggregation level for 3P testing")
+            level_test = st.selectbox("Level of test", ["Block", "District", "State"], help="The aggregation level at which the third party will test and give reward/punishment.")
         with col6:
-            subs_per_block = st.number_input("Subordinates/block", min_value=1, value=10, help="Number of subordinates in a block. Range > 1")
+            subs_per_block = st.number_input("Subordinates/block", min_value=1, value=10, help="The number of subordinates in a block.")
         
         col7, col8, col9 = st.columns(3)
         with col7:
-            blocks_per_district = st.number_input("Blocks/district", min_value=1, value=5, help="Number of blocks in a district. Range >= 1")
+            blocks_per_district = st.number_input("Blocks/district", min_value=1, value=5, help="The number of blocks in a district. The total number of blocks to be ranked should be >1.")
         with col8:
-            districts = st.number_input("Districts", min_value=1, value=1, help="Number of districts. Range >= 1")
+            districts = st.number_input("Districts", min_value=1, value=1, help="Number of districts.")
         with col9:
-            n_simulations = st.number_input("Simulations", min_value=1, value=100, help="Simulation runs (default 100). Higher n gives more accuracy but takes longer. Range > 1")
+            n_simulations = st.number_input("Simulations", min_value=1, value=100, help="By default, this should be set to 100. The number of times the algorithm will be run to estimate the number of samples required. A higher number of simulations will give a more accurate answer, but will take longer to run.")
         
         col10, col11, col12 = st.columns(3)
         with col10:
-            min_sub_per_block = st.number_input("Min subordinates/block", min_value=1, value=1, help="Min subordinates measured per block (default 1). 0 < Range < n_sub_per_block")
+            min_sub_per_block = st.number_input("Min subordinates/block", min_value=1, value=1, help="Minimum number of subordinates to be measured in each block. By default, this should be set to 1.")
         with col11:
             percent_blocks_plot = st.slider("% blocks to plot", 0.0, 100.0, 10.0)
         with col12:
-            errorbar_type = st.selectbox("Errorbar Type", ["standard deviation", "standard error of the mean", "95% confidence interval"], help="Errorbar Type")
+            errorbar_type = st.selectbox("Errorbar Type", ["standard deviation", "standard error of the mean", "95% confidence interval"], help='''Method used to calculate error bars in the output figure. 
+            Note: error bar is calculated based on values obtained from different simulations. Number of simulations is taken into account for standard error of the mean and 95% confidence interval, but not standard deviation. 95% confidence intervals calculated using the default formula (1.96*standard error), which assumes that the data is normally distributed.''')
 
         col13, col14, col15 = st.columns(3)
         with col13:
-            n_blocks_reward = st.number_input("Number of Unit Rewarded", min_value=1, value=1, help="The number of units to be rewarded. Depends on level_test and other inputs")
+            n_blocks_reward = st.number_input("Number of Unit Rewarded", min_value=1, value=1, help="The number of units to be rewarded. The second chart displayed will show you how many of these rewarded units are expected to be real top rankers, as per the simulated truth scores.")
         
         
         if st.form_submit_button("Predict Third-Party Sampling Strategy"):
             input_data = {
-                "total_samples": total_samples, "average_truth_score": avg_score,
-                "sd_across_blocks": sd_across, "sd_within_block": sd_within,
-                "level_test": level_test, "n_subs_per_block": subs_per_block,
-                "n_blocks_per_district": blocks_per_district, "n_district": districts,
-                "n_simulations": n_simulations, "min_sub_per_block": min_sub_per_block,
-                "percent_blocks_plot": percent_blocks_plot, "errorbar_type": errorbar_type,
+                "total_samples": total_samples, 
+                "average_truth_score": avg_score,
+                "sd_across_blocks": sd_across, 
+                "sd_within_block": sd_within,
+                "level_test": level_test, 
+                "n_subs_per_block": subs_per_block,
+                "n_blocks_per_district": blocks_per_district, 
+                "n_district": districts,
+                "n_simulations": n_simulations, 
+                "min_sub_per_block": min_sub_per_block,
+                "percent_blocks_plot": percent_blocks_plot, 
+                "errorbar_type": errorbar_type,
                 "n_blocks_reward": n_blocks_reward
             }
             

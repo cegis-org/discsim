@@ -14,14 +14,14 @@ im = Image.open(logo_path)
 logo_page_path = os.path.join(root_dir, "logo_white.png")
 im_page = Image.open(logo_page_path)
 
-def set_page_config():
+def set_page_config(sideBar = 'expanded'):
     st.logo(im_page)
 
     st.set_page_config(
         page_title="DiscSim | CEGIS",
         layout="wide",
         page_icon=im,
-        initial_sidebar_state="expanded",
+        initial_sidebar_state=sideBar,
     )
     loadcss(os.path.join(root_dir, "custom.css"))
     userAvatar()
