@@ -387,6 +387,10 @@ def parse_nested_scores(nested_scores):
     3. A list of students in each school that was retested by L1.
     4. The length of each of these lists.
 
+    Additionally, print:
+    - 'L2 tested X students in Y schools' for each L1.
+    - 'L1 tested Z students in each school' for each school.
+
     Args:
         nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
 
@@ -428,6 +432,20 @@ def parse_nested_scores(nested_scores):
 
             # Update the length of L2 retested schools for this L1
             result["lengths"][l2_key]["L2_schools"][l1_key] = len(result["L2_retested_schools"][l2_key][l1_key])
+
+            # Print the number of students retested by L1 in each school
+            for school_key in result["L1_retested_students"][l2_key][l1_key]:
+                num_students_L1 = result["lengths"][l2_key]["L1_students"][l1_key][school_key]
+                print(f"L1 tested {num_students_L1} students in {school_key}")
+
+        # Print the number of schools and students retested by L2 for each L1
+        for l1_key in result["L2_retested_schools"][l2_key]:
+            num_schools_L2 = result["lengths"][l2_key]["L2_schools"][l1_key]
+            total_students_L2 = sum(
+                result["lengths"][l2_key]["L2_students"][l1_key].get(school_key, 0)
+                for school_key in result["L2_retested_students"][l2_key][l1_key]
+            )
+            print(f"L2 tested {total_students_L2} students in {num_schools_L2} schools for {l1_key}")
 
     return result
 
