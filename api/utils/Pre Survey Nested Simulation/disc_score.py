@@ -46,6 +46,11 @@ def discrepancy_score(subordinate_variable, supervisor_variable, method):
         discrepancy_score = np.mean(subordinate_variable - supervisor_variable)
     elif method == "percent_non_match":
         discrepancy_score = np.sum(subordinate_variable != supervisor_variable) / len(subordinate_variable) * 100
+    elif method == 'directional_percent_non_match':
+        # If the subordinate variable is 0 and the supervisor variable is 1, or the subordinate variable is False
+        # and the supervisor variable is True, return 0, else return the percentage of non-matches
+        discrepancy_score = np.sum(np.where((subordinate_variable == 0) & (supervisor_variable == 1), 0, 
+                  (subordinate_variable != supervisor_variable).astype(int)))/len(subordinate_variable) * 100
     elif method == "directional_difference":
         # If the subordinate variable is less than the supervisor variable, return 0, else return the difference
         discrepancy_score = np.mean(np.where(subordinate_variable < supervisor_variable, 0, 
