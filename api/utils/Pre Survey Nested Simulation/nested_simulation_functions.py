@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from disc_score import discrepancy_score
 
 def generate_real_scores_per_subject(num_students, mean, std_dev, granularity):
     """
@@ -366,90 +367,6 @@ def simulate_test_scores(
 
     return nested_scores
 
-def combine_scores(groups):
-    """
-    Combine scores from multiple groups into a single dictionary.
-    """
-    combined_scores = {}
-    for group in groups:
-        for subject, scores in group.items():
-            if subject not in combined_scores:
-                combined_scores[subject] = []
-            combined_scores[subject].extend(scores)
-    for subject in combined_scores:
-        combined_scores[subject] = np.array(combined_scores[subject])
-    return combined_scores
-
-def parse_nested_scores(nested_scores):
-    """
-    Parse the nested_scores dictionary to extract:
-    1. A list of schools for each L1 that were retested by L2.
-    2. A list of students in each of those schools that were retested by L2.
-    3. A list of students in each school that was retested by L1.
-    4. The length of each of these lists.
-
-    Additionally, print:
-    - 'L2 tested X students in Y schools' for each L1.
-    - 'L1 tested Z students in each school' for each school.
-
-    Args:
-        nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
-
-    Returns:
-        dict: A dictionary containing the parsed information.
-    """
-    result = {
-        "L2_retested_schools": {},  # List of schools retested by L2 for each L1
-        "L2_retested_students": {},  # List of students retested by L2 in each school
-        "L1_retested_students": {},  # List of students retested by L1 in each school
-        "lengths": {}  # Lengths of the above lists
-    }
-
-    for l2_key, l2_data in nested_scores.items():
-        result["L2_retested_schools"][l2_key] = {}
-        result["L2_retested_students"][l2_key] = {}
-        result["L1_retested_students"][l2_key] = {}
-        result["lengths"][l2_key] = {"L2_schools": {}, "L2_students": {}, "L1_students": {}}
-
-        for l1_key, l1_data in l2_data.items():
-            result["L2_retested_schools"][l2_key][l1_key] = []
-            result["L2_retested_students"][l2_key][l1_key] = {}
-            result["L1_retested_students"][l2_key][l1_key] = {}
-            result["lengths"][l2_key]["L2_schools"][l1_key] = 0
-            result["lengths"][l2_key]["L2_students"][l1_key] = {}
-            result["lengths"][l2_key]["L1_students"][l1_key] = {}
-
-            for school_key, school_data in l1_data.items():
-                # Check if the school was retested by L2
-                if school_data["L2_scores"]:
-                    result["L2_retested_schools"][l2_key][l1_key].append(school_key)
-                    result["L2_retested_students"][l2_key][l1_key][school_key] = list(school_data["L2_scores"].keys())
-                    result["lengths"][l2_key]["L2_students"][l1_key][school_key] = len(school_data["L2_scores"])
-
-                # Check if the school was retested by L1
-                if school_data["L1_scores"]:
-                    result["L1_retested_students"][l2_key][l1_key][school_key] = list(school_data["L1_scores"].keys())
-                    result["lengths"][l2_key]["L1_students"][l1_key][school_key] = len(school_data["L1_scores"])
-
-            # Update the length of L2 retested schools for this L1
-            result["lengths"][l2_key]["L2_schools"][l1_key] = len(result["L2_retested_schools"][l2_key][l1_key])
-
-            # Print the number of students retested by L1 in each school
-            for school_key in result["L1_retested_students"][l2_key][l1_key]:
-                num_students_L1 = result["lengths"][l2_key]["L1_students"][l1_key][school_key]
-                print(f"L1 tested {num_students_L1} students in {school_key}")
-
-        # Print the number of schools and students retested by L2 for each L1
-        for l1_key in result["L2_retested_schools"][l2_key]:
-            num_schools_L2 = result["lengths"][l2_key]["L2_schools"][l1_key]
-            total_students_L2 = sum(
-                result["lengths"][l2_key]["L2_students"][l1_key].get(school_key, 0)
-                for school_key in result["L2_retested_students"][l2_key][l1_key]
-            )
-            print(f"L2 tested {total_students_L2} students in {num_schools_L2} schools for {l1_key}")
-
-    return result
-
 def plot_nested_scores(nested_scores, subjects):
     """
     Plot the distribution of real scores and compare them with L0, L1, and L2 scores.
@@ -496,33 +413,151 @@ def plot_nested_scores(nested_scores, subjects):
     num_subjects = len(subjects)
     fig, axes = plt.subplots(4, num_subjects, figsize=(5 * num_subjects, 20))
 
+    # Font size settings
+    title_fontsize = 16
+    label_fontsize = 14
+    tick_fontsize = 12
+
     for i, subject in enumerate(subjects):
         # Plot histogram of real scores
         axes[0, i].hist(real_scores[subject], bins=20, color="black", alpha=0.7)
-        axes[0, i].set_title(f"Real Scores Distribution - {subject}")
-        axes[0, i].set_xlabel("Score")
-        axes[0, i].set_ylabel("Frequency")
+        axes[0, i].set_title(f"Real Scores Distribution - {subject}", fontsize=title_fontsize)
+        axes[0, i].set_xlabel("Score", fontsize=label_fontsize)
+        axes[0, i].set_ylabel("Frequency", fontsize=label_fontsize)
+        axes[0, i].tick_params(axis="both", labelsize=tick_fontsize)
 
         # Scatter plot: Real vs L0 scores
-        axes[1, i].scatter(real_scores[subject], L0_scores[subject], alpha=0.5, color="blue")
-        axes[1, i].set_title(f"Real vs L0 Scores - {subject}")
-        axes[1, i].set_xlabel("Real Scores")
-        axes[1, i].set_ylabel("L0 Scores")
+        axes[1, i].scatter(real_scores[subject], L0_scores[subject], alpha=0.5, color="black")
+        axes[1, i].set_title(f"Real vs L0 Scores - {subject}", fontsize=title_fontsize)
+        axes[1, i].set_xlabel("Real Scores", fontsize=label_fontsize)
+        axes[1, i].set_ylabel("L0 Scores", fontsize=label_fontsize)
+        axes[1, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[1, i].grid()
 
         # Scatter plot: Real vs L1 scores
-        axes[2, i].scatter(L1_real_scores[subject], L1_scores[subject], alpha=0.5, color="green")
-        axes[2, i].set_title(f"Real vs L1 Scores - {subject}")
-        axes[2, i].set_xlabel("Real Scores (L1 Retested)")
-        axes[2, i].set_ylabel("L1 Scores")
+        axes[2, i].scatter(L1_real_scores[subject], L1_scores[subject], alpha=0.5, color="black")
+        axes[2, i].set_title(f"Real vs L1 Scores - {subject}", fontsize=title_fontsize)
+        axes[2, i].set_xlabel("Real Scores (L1 Retested)", fontsize=label_fontsize)
+        axes[2, i].set_ylabel("L1 Scores", fontsize=label_fontsize)
+        axes[2, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[2, i].grid()
 
         # Scatter plot: Real vs L2 scores
-        axes[3, i].scatter(L2_real_scores[subject], L2_scores[subject], alpha=0.5, color="red")
-        axes[3, i].set_title(f"Real vs L2 Scores - {subject}")
-        axes[3, i].set_xlabel("Real Scores (L2 Retested)")
-        axes[3, i].set_ylabel("L2 Scores")
+        axes[3, i].scatter(L2_real_scores[subject], L2_scores[subject], alpha=0.5, color="black")
+        axes[3, i].set_title(f"Real vs L2 Scores - {subject}", fontsize=title_fontsize)
+        axes[3, i].set_xlabel("Real Scores (L2 Retested)", fontsize=label_fontsize)
+        axes[3, i].set_ylabel("L2 Scores", fontsize=label_fontsize)
+        axes[3, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[3, i].grid()
 
     plt.tight_layout()
     plt.show()
+
+def calculate_disc_scores(nested_scores, method):
+    """
+    Calculate discrepancy scores for three pairs of scores: L0 vs L2, L1 vs L2, and L0 vs L1.
+    For each L0 (school), calculate the discrepancy score for L0 vs L2 and L0 vs L1.
+    For each L1 (unit), calculate the discrepancy score for L1 vs L2.
+    Plot the distributions of discrepancy scores for each pair.
+
+    Args:
+        nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
+        method (str): The method to calculate discrepancy scores (e.g., 'percent_difference', 'absolute_difference', etc.).
+        n_L2s (int): Number of L2 units.
+        n_L1s_per_L2 (int): Number of L1 units per L2.
+        n_schools_per_L1 (int): Number of schools per L1.
+
+    Returns:
+        dict: A dictionary containing arrays of discrepancy scores for each pair.
+    """
+    # Initialize arrays to store discrepancy scores
+    L0_vs_L2_scores = []
+    L1_vs_L2_scores = []
+    L0_vs_L1_scores = []
+
+    # Traverse the nested_scores dictionary to calculate discrepancy scores
+    for l2_key, l2_data in nested_scores.items():
+        for l1_key, l1_data in l2_data.items():
+            # Collect L1 vs L2 scores for this L1 unit
+            L1_subordinate = []
+            L2_supervisor = []
+
+            for school_key, school_data in l1_data.items():
+                # Collect L0 vs L2 scores for this school
+                if school_data["L2_scores"]:  # Only calculate if L2 retested this school
+                    L0_subordinate = []
+                    L2_supervisor_school = []
+
+                    for student_id in school_data["L2_scores"]:
+                        if student_id in school_data["L0_scores"]:
+                            L0_subordinate.extend(school_data["L0_scores"][student_id].values())
+                            L2_supervisor_school.extend(school_data["L2_scores"][student_id].values())
+
+                    if L0_subordinate and L2_supervisor_school:
+                        L0_vs_L2_scores.append(discrepancy_score(L0_subordinate, L2_supervisor_school, method))
+
+                # Collect L0 vs L1 scores for this school
+                if school_data["L1_scores"]:  # Only calculate if L1 retested this school
+                    L0_subordinate = []
+                    L1_supervisor_school = []
+
+                    for student_id in school_data["L1_scores"]:
+                        if student_id in school_data["L0_scores"]:
+                            L0_subordinate.extend(school_data["L0_scores"][student_id].values())
+                            L1_supervisor_school.extend(school_data["L1_scores"][student_id].values())
+
+                    if L0_subordinate and L1_supervisor_school:
+                        L0_vs_L1_scores.append(discrepancy_score(L0_subordinate, L1_supervisor_school, method))
+
+                # Collect L1 vs L2 scores for this L1 unit
+                if school_data["L2_scores"]:  # Only calculate if L2 retested this school
+                    for student_id in school_data["L2_scores"]:
+                        if student_id in school_data["L1_scores"]:
+                            L1_subordinate.extend(school_data["L1_scores"][student_id].values())
+                            L2_supervisor.extend(school_data["L2_scores"][student_id].values())
+
+            # Calculate L1 vs L2 discrepancy for this L1 unit
+            if L1_subordinate and L2_supervisor:
+                L1_vs_L2_scores.append(discrepancy_score(L1_subordinate, L2_supervisor, method))
+
+    # Store the results in a dictionary
+    results = {
+        "L0_vs_L2": L0_vs_L2_scores,
+        "L1_vs_L2": L1_vs_L2_scores,
+        "L0_vs_L1": L0_vs_L1_scores
+    }
+
+    # Plot the distributions of discrepancy scores
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True)
+
+    # Font size settings
+    title_fontsize = 20
+    label_fontsize = 18
+    tick_fontsize = 16
+
+    # L0 vs L2
+    axes[0].hist(L0_vs_L2_scores, bins=20, color="black", alpha=0.7)
+    axes[0].set_title("L0 vs L2 Discrepancy", fontsize=title_fontsize)
+    axes[0].set_xlabel("Discrepancy Score", fontsize=label_fontsize)
+    axes[0].set_ylabel("Frequency", fontsize=label_fontsize)
+    axes[0].tick_params(axis="both", labelsize=tick_fontsize)
+
+    # L1 vs L2
+    axes[1].hist(L1_vs_L2_scores, bins=20, color="black", alpha=0.7)
+    axes[1].set_title("L1 vs L2 Discrepancy", fontsize=title_fontsize)
+    axes[1].set_xlabel("Discrepancy Score", fontsize=label_fontsize)
+    axes[1].tick_params(axis="both", labelsize=tick_fontsize)
+
+    # L0 vs L1
+    axes[2].hist(L0_vs_L1_scores, bins=20, color="black", alpha=0.7)
+    axes[2].set_title("L0 vs L1 Discrepancy", fontsize=title_fontsize)
+    axes[2].set_xlabel("Discrepancy Score", fontsize=label_fontsize)
+    axes[2].tick_params(axis="both", labelsize=tick_fontsize)
+
+    plt.tight_layout()
+    plt.show()
+
+    return results
 
 
 
