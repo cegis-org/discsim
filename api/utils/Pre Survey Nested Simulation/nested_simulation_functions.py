@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 def generate_real_scores_per_subject(num_students, mean, std_dev, granularity):
     """
@@ -448,6 +449,80 @@ def parse_nested_scores(nested_scores):
             print(f"L2 tested {total_students_L2} students in {num_schools_L2} schools for {l1_key}")
 
     return result
+
+def plot_nested_scores(nested_scores, subjects):
+    """
+    Plot the distribution of real scores and compare them with L0, L1, and L2 scores.
+
+    Args:
+        nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
+        subjects (list): List of subjects to plot (e.g., ["Maths", "English", "Science"]).
+    """
+    # Collect all scores for each subject
+    real_scores = {subject: [] for subject in subjects}
+    L0_scores = {subject: [] for subject in subjects}
+    L1_real_scores = {subject: [] for subject in subjects}
+    L1_scores = {subject: [] for subject in subjects}
+    L2_real_scores = {subject: [] for subject in subjects}
+    L2_scores = {subject: [] for subject in subjects}
+
+    # Traverse the nested_scores dictionary to extract scores
+    for l2_data in nested_scores.values():
+        for l1_data in l2_data.values():
+            for school_data in l1_data.values():
+                # Add real scores
+                for student_scores in school_data["real_scores"].values():
+                    for subject in subjects:
+                        real_scores[subject].extend(student_scores[subject])  # Use extend to flatten arrays
+
+                # Add L0 scores
+                for student_scores in school_data["L0_scores"].values():
+                    for subject in subjects:
+                        L0_scores[subject].extend(student_scores[subject])  # Use extend to flatten arrays
+
+                # Add L1 scores and corresponding real scores
+                for student_id, student_scores in school_data["L1_scores"].items():
+                    for subject in subjects:
+                        L1_real_scores[subject].append(school_data["real_scores"][student_id][subject])
+                        L1_scores[subject].append(student_scores[subject])
+
+                # Add L2 scores and corresponding real scores
+                for student_id, student_scores in school_data["L2_scores"].items():
+                    for subject in subjects:
+                        L2_real_scores[subject].append(school_data["real_scores"][student_id][subject])
+                        L2_scores[subject].append(student_scores[subject])
+
+    # Plot the distributions and comparisons
+    num_subjects = len(subjects)
+    fig, axes = plt.subplots(4, num_subjects, figsize=(5 * num_subjects, 20))
+
+    for i, subject in enumerate(subjects):
+        # Plot histogram of real scores
+        axes[0, i].hist(real_scores[subject], bins=20, color="black", alpha=0.7)
+        axes[0, i].set_title(f"Real Scores Distribution - {subject}")
+        axes[0, i].set_xlabel("Score")
+        axes[0, i].set_ylabel("Frequency")
+
+        # Scatter plot: Real vs L0 scores
+        axes[1, i].scatter(real_scores[subject], L0_scores[subject], alpha=0.5, color="blue")
+        axes[1, i].set_title(f"Real vs L0 Scores - {subject}")
+        axes[1, i].set_xlabel("Real Scores")
+        axes[1, i].set_ylabel("L0 Scores")
+
+        # Scatter plot: Real vs L1 scores
+        axes[2, i].scatter(L1_real_scores[subject], L1_scores[subject], alpha=0.5, color="green")
+        axes[2, i].set_title(f"Real vs L1 Scores - {subject}")
+        axes[2, i].set_xlabel("Real Scores (L1 Retested)")
+        axes[2, i].set_ylabel("L1 Scores")
+
+        # Scatter plot: Real vs L2 scores
+        axes[3, i].scatter(L2_real_scores[subject], L2_scores[subject], alpha=0.5, color="red")
+        axes[3, i].set_title(f"Real vs L2 Scores - {subject}")
+        axes[3, i].set_xlabel("Real Scores (L2 Retested)")
+        axes[3, i].set_ylabel("L2 Scores")
+
+    plt.tight_layout()
+    plt.show()
 
 
 
