@@ -453,7 +453,7 @@ def plot_nested_scores(nested_scores, subjects):
     plt.tight_layout()
     plt.show()
 
-def calculate_disc_scores(nested_scores, method):
+def calculate_disc_scores(nested_scores, method, passing_marks):
     """
     Calculate discrepancy scores for three pairs of scores: L0 vs L2, L1 vs L2, and L0 vs L1.
     For each L0 (school), calculate the discrepancy score for L0 vs L2 and L0 vs L1.
@@ -463,6 +463,7 @@ def calculate_disc_scores(nested_scores, method):
     Args:
         nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
         method (str): The method to calculate discrepancy scores (e.g., 'percent_difference', 'absolute_difference', etc.).
+        passing_marks (dict): Dictionary of passing marks for each subject.
         n_L2s (int): Number of L2 units.
         n_L1s_per_L2 (int): Number of L1 units per L2.
         n_schools_per_L1 (int): Number of schools per L1.
@@ -474,6 +475,13 @@ def calculate_disc_scores(nested_scores, method):
     L0_vs_L2_scores = []
     L1_vs_L2_scores = []
     L0_vs_L1_scores = []
+
+    # Helper function to binarize scores into pass/fail
+    def binarize_scores(scores, passing_marks):
+        binarized = []
+        for subject, score in scores.items():
+            binarized.append(score >= passing_marks[subject])
+        return binarized
 
     # Traverse the nested_scores dictionary to calculate discrepancy scores
     for l2_key, l2_data in nested_scores.items():
@@ -490,8 +498,12 @@ def calculate_disc_scores(nested_scores, method):
 
                     for student_id in school_data["L2_scores"]:
                         if student_id in school_data["L0_scores"]:
-                            L0_subordinate.extend(school_data["L0_scores"][student_id].values())
-                            L2_supervisor_school.extend(school_data["L2_scores"][student_id].values())
+                            if method in ["percent_non_match", "directional_percent_non_match"]:
+                                L0_subordinate.extend(binarize_scores(school_data["L0_scores"][student_id], passing_marks))
+                                L2_supervisor_school.extend(binarize_scores(school_data["L2_scores"][student_id], passing_marks))
+                            else:
+                                L0_subordinate.extend(school_data["L0_scores"][student_id].values())
+                                L2_supervisor_school.extend(school_data["L2_scores"][student_id].values())
 
                     if L0_subordinate and L2_supervisor_school:
                         L0_vs_L2_scores.append(discrepancy_score(L0_subordinate, L2_supervisor_school, method))
@@ -503,8 +515,12 @@ def calculate_disc_scores(nested_scores, method):
 
                     for student_id in school_data["L1_scores"]:
                         if student_id in school_data["L0_scores"]:
-                            L0_subordinate.extend(school_data["L0_scores"][student_id].values())
-                            L1_supervisor_school.extend(school_data["L1_scores"][student_id].values())
+                            if method in ["percent_non_match", "directional_percent_non_match"]:
+                                L0_subordinate.extend(binarize_scores(school_data["L0_scores"][student_id], passing_marks))
+                                L1_supervisor_school.extend(binarize_scores(school_data["L1_scores"][student_id], passing_marks))
+                            else:
+                                L0_subordinate.extend(school_data["L0_scores"][student_id].values())
+                                L1_supervisor_school.extend(school_data["L1_scores"][student_id].values())
 
                     if L0_subordinate and L1_supervisor_school:
                         L0_vs_L1_scores.append(discrepancy_score(L0_subordinate, L1_supervisor_school, method))
@@ -513,8 +529,12 @@ def calculate_disc_scores(nested_scores, method):
                 if school_data["L2_scores"]:  # Only calculate if L2 retested this school
                     for student_id in school_data["L2_scores"]:
                         if student_id in school_data["L1_scores"]:
-                            L1_subordinate.extend(school_data["L1_scores"][student_id].values())
-                            L2_supervisor.extend(school_data["L2_scores"][student_id].values())
+                            if method in ["percent_non_match", "directional_percent_non_match"]:
+                                L1_subordinate.extend(binarize_scores(school_data["L1_scores"][student_id], passing_marks))
+                                L2_supervisor.extend(binarize_scores(school_data["L2_scores"][student_id], passing_marks))
+                            else:
+                                L1_subordinate.extend(school_data["L1_scores"][student_id].values())
+                                L2_supervisor.extend(school_data["L2_scores"][student_id].values())
 
             # Calculate L1 vs L2 discrepancy for this L1 unit
             if L1_subordinate and L2_supervisor:
@@ -528,7 +548,7 @@ def calculate_disc_scores(nested_scores, method):
     }
 
     # Plot the distributions of discrepancy scores
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=False, sharex=False)
 
     # Font size settings
     title_fontsize = 20
