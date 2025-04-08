@@ -45,6 +45,10 @@ def handle_file_upload(file_option, category):
                         f"A file with this name already exists in {category}. Please upload a different file."
                     )
                     return None
+                elif response.status_code == 400:
+                    message = response.json()["message"]
+                    st.error(message)
+                    return None
                 else:
                     st.error("Failed to upload file.")
                     return None

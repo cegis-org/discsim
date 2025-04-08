@@ -46,6 +46,7 @@ from api.utils.post_survey_analysis import calculate_discrepancy_scores
 from api.utils.pseudo_code import anganwadi_center_data_anaylsis
 from api.database import get_db, UploadedFile
 from api.database import engine, Base
+import chardet
 
 app = FastAPI()
 
@@ -74,6 +75,16 @@ async def upload_file(
     category: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    contents = await file.read()
+    encoding = chardet.detect(contents)["encoding"]
+    if encoding not in ['UTF-8', 'UTF-8-SIG']:
+        return JSONResponse(
+            status_code=400, 
+            content={
+                "message": "File is not UTF-8 encoded",
+            },
+        )
+
     # Check if a file with the same name and category already exists
     existing_file = (
         db.query(UploadedFile)
@@ -126,6 +137,10 @@ async def get_file(file_id: int, db: Session = Depends(get_db)):
     file = db.query(UploadedFile).filter(UploadedFile.id == file_id).first()
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
+    
+    encoding = chardet.detect(file.content)["encoding"]
+    if encoding not in ['UTF-8', 'UTF-8-SIG']:
+        raise HTTPException(400,f"File is not UTF-8 encoded. Encoding found: {encoding}")
 
     # Return file content and filename as JSON
     return {
