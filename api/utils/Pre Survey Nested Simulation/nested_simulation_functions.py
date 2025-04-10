@@ -374,14 +374,14 @@ def simulate_test_scores(
 
     return nested_scores
 
-def plot_nested_scores(nested_scores, subjects, subjects_params):
+def plot_nested_scores(nested_scores, subjects, passing_marks):
     """
     Plot the distribution of real scores and compare them with L0, L1, and L2 scores.
 
     Args:
         nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
         subjects (list): List of subjects to plot (e.g., ["Maths", "English", "Science"]).
-        subjects_params (dict): Dictionary containing parameters for each subject, including passing marks.
+        passing_marks (dict): Dictionary of passing marks for each subject.
     """
     # Collect all scores for each subject
     real_scores = {subject: [] for subject in subjects}
@@ -427,7 +427,7 @@ def plot_nested_scores(nested_scores, subjects, subjects_params):
     tick_fontsize = 12
 
     for i, subject in enumerate(subjects):
-        passing_mark = subjects_params[subject]['passing_mark']
+        passing_mark = passing_marks[subject]
         # Plot histogram of real scores
         axes[0, i].hist(real_scores[subject], bins=20, color="black", alpha=0.7)
         axes[0, i].set_title(f"Real Scores Distribution - {subject}", fontsize=title_fontsize)
@@ -476,9 +476,6 @@ def calculate_disc_scores(nested_scores, method, passing_marks):
         nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
         method (str): The method to calculate discrepancy scores (e.g., 'percent_difference', 'absolute_difference', etc.).
         passing_marks (dict): Dictionary of passing marks for each subject.
-        n_L2s (int): Number of L2 units.
-        n_L1s_per_L2 (int): Number of L1 units per L2.
-        n_schools_per_L1 (int): Number of schools per L1.
 
     Returns:
         dict: A dictionary containing arrays of discrepancy scores for each pair.
@@ -559,32 +556,37 @@ def calculate_disc_scores(nested_scores, method, passing_marks):
         "L0_vs_L1": L0_vs_L1_scores
     }
 
+    # Determine the global x-axis limits
+    all_scores = L0_vs_L2_scores + L1_vs_L2_scores + L0_vs_L1_scores
+    x_min, x_max = min(all_scores), max(all_scores)
+
     # Plot the distributions of discrepancy scores
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=False, sharex=False)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharey=True)
 
     # Font size settings
     title_fontsize = 20
     label_fontsize = 18
     tick_fontsize = 16
 
+    # Helper function to plot histograms as percentages
+    def plot_histogram(ax, data, title):
+        counts, bins, patches = ax.hist(data, bins=20, range=(x_min, x_max), color="black", alpha=0.7, density=True)
+        percentages = counts * 100  # Convert to percentages
+        ax.clear()
+        ax.bar(bins[:-1], percentages, width=np.diff(bins), align="edge", color="black", alpha=0.7)
+        ax.set_title(title, fontsize=title_fontsize)
+        ax.set_xlabel("Discrepancy Score", fontsize=label_fontsize)
+        ax.set_ylabel("Percentage", fontsize=label_fontsize)
+        ax.tick_params(axis="both", labelsize=tick_fontsize)
+
     # L0 vs L2
-    axes[0].hist(L0_vs_L2_scores, bins=20, color="black", alpha=0.7)
-    axes[0].set_title("L0 vs L2 Discrepancy", fontsize=title_fontsize)
-    axes[0].set_xlabel("Discrepancy Score", fontsize=label_fontsize)
-    axes[0].set_ylabel("Frequency", fontsize=label_fontsize)
-    axes[0].tick_params(axis="both", labelsize=tick_fontsize)
+    plot_histogram(axes[0], L0_vs_L2_scores, "L0 vs L2 Discrepancy")
 
     # L1 vs L2
-    axes[1].hist(L1_vs_L2_scores, bins=20, color="black", alpha=0.7)
-    axes[1].set_title("L1 vs L2 Discrepancy", fontsize=title_fontsize)
-    axes[1].set_xlabel("Discrepancy Score", fontsize=label_fontsize)
-    axes[1].tick_params(axis="both", labelsize=tick_fontsize)
+    plot_histogram(axes[1], L1_vs_L2_scores, "L1 vs L2 Discrepancy")
 
     # L0 vs L1
-    axes[2].hist(L0_vs_L1_scores, bins=20, color="black", alpha=0.7)
-    axes[2].set_title("L0 vs L1 Discrepancy", fontsize=title_fontsize)
-    axes[2].set_xlabel("Discrepancy Score", fontsize=label_fontsize)
-    axes[2].tick_params(axis="both", labelsize=tick_fontsize)
+    plot_histogram(axes[2], L0_vs_L1_scores, "L0 vs L1 Discrepancy")
 
     plt.tight_layout()
     plt.show()
