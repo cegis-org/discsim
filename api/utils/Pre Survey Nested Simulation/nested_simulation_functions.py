@@ -23,7 +23,7 @@ def generate_real_scores(num_students, subjects_params):
         )
     return real_scores
 
-def apply_integrity_distortion(scores, passing_mark, slope):
+def apply_integrity_distortion(scores, passing_mark, slope, delta):
     """
     Apply integrity distortion to scores.
     
@@ -31,17 +31,16 @@ def apply_integrity_distortion(scores, passing_mark, slope):
         scores (np.ndarray): Array of real scores.
         passing_mark (float): Passing mark for the subject.
         slope (float): Slope of the distortion line.
+        delta (float): The marks below the passing mark at which teacher gives passing marks.
     
     Returns:
         np.ndarray: Distorted scores with integrity distortion applied.
     """
-    # Note: if the student has already got marks above passing, 
-    # we are assuming that the marks will NOT be changed.
-    distortion = np.maximum(0, passing_mark - scores) * slope
+    distortion = np.maximum(0, passing_mark + delta - scores) * slope
     distorted_scores = scores + distortion
     return np.clip(distorted_scores, 0, 100)
 
-def apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0):
+def apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0, delta):
     """
     Apply integrity distortion at L0 for all subjects.
     
@@ -49,6 +48,7 @@ def apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0):
         real_scores (dict): Dictionary of real scores for each subject.
         passing_marks (dict): Dictionary of passing marks for each subject.
         slope_L0 (float): Slope for L0 integrity distortion.
+        delta (float): The marks below the passing mark at which teacher gives passing marks.
     
     Returns:
         dict: Distorted scores with integrity distortion applied at L0.
@@ -56,10 +56,10 @@ def apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0):
     distorted_scores = {}
     for subject, scores in real_scores.items():
         passing_mark = passing_marks[subject]
-        distorted_scores[subject] = apply_integrity_distortion(scores, passing_mark, slope_L0)
+        distorted_scores[subject] = apply_integrity_distortion(scores, passing_mark, slope_L0, delta)
     return distorted_scores
 
-def apply_integrity_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0):
+def apply_integrity_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0, delta):
     """
     Apply integrity distortion at L1 for all subjects.
     
@@ -68,6 +68,7 @@ def apply_integrity_distortion_L1(real_scores, passing_marks, collusion_index, s
         passing_marks (dict): Dictionary of passing marks for each subject.
         collusion_index (float): Collusion index (0 to 1) for L1 integrity distortion.
         slope_L0 (float): Slope for L0 integrity distortion.
+        delta (float): The marks below the passing mark at which teacher gives passing marks.
     
     Returns:
         dict: Distorted scores with integrity distortion applied at L1.
@@ -79,7 +80,7 @@ def apply_integrity_distortion_L1(real_scores, passing_marks, collusion_index, s
     for subject, scores in real_scores.items():
         passing_mark = passing_marks[subject]
         slope_L1 = slope_L0 * collusion_index  # Adjust slope based on collusion index
-        distorted_scores[subject] = apply_integrity_distortion(scores, passing_mark, slope_L1)
+        distorted_scores[subject] = apply_integrity_distortion(scores, passing_mark, slope_L1, delta)
     return distorted_scores
 
 def apply_moderation_distortion(scores, moderation_index):
@@ -112,7 +113,7 @@ def apply_measurement_error(scores, mean=0, std_dev=1):
     distorted_scores = scores + noise
     return np.clip(distorted_scores, 0, 100)
 
-def apply_distortion_L0(real_scores, passing_marks, slope_L0, measurement_error_mean=0, measurement_error_std_dev=1):
+def apply_distortion_L0(real_scores, passing_marks, slope_L0, delta, measurement_error_mean=0, measurement_error_std_dev=1):
     """
     Apply all distortions at L0.
     
@@ -120,20 +121,21 @@ def apply_distortion_L0(real_scores, passing_marks, slope_L0, measurement_error_
         real_scores (dict): Dictionary of real scores for each subject.
         passing_marks (dict): Dictionary of passing marks for each subject.
         slope_L0 (float): Slope for L0 integrity distortion.
+        delta (float): The marks below the passing mark at which teacher gives passing marks.
         measurement_error_mean (float, optional): Mean of the normal distribution for measurement error. Default is 0.
         measurement_error_std_dev (float, optional): Standard deviation of the normal distribution for measurement error. Default is 1.
     
     Returns:
         dict: Distorted scores with all L0 distortions applied.
     """
-    distorted_scores = apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0)
+    distorted_scores = apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0, delta)
     distorted_scores = {
         subject: apply_measurement_error(scores, mean=measurement_error_mean, std_dev=measurement_error_std_dev)
         for subject, scores in distorted_scores.items()
     }
     return distorted_scores
 
-def apply_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0, measurement_error_mean=0, measurement_error_std_dev=1, moderation_index_L1=0):
+def apply_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0, delta, measurement_error_mean=0, measurement_error_std_dev=1, moderation_index_L1=0):
     """
     Apply all distortions at L1.
     
@@ -142,6 +144,7 @@ def apply_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0, m
         passing_marks (dict): Dictionary of passing marks for each subject.
         collusion_index (float): Collusion index (0 to 1) for L1 integrity distortion.
         slope_L0 (float): Slope for L0 integrity distortion.
+        delta (float): The marks below the passing mark at which teacher gives passing marks.
         measurement_error_mean (float, optional): Mean of the normal distribution for measurement error. Default is 0.
         measurement_error_std_dev (float, optional): Standard deviation of the normal distribution for measurement error. Default is 1.
         moderation_index_L1 (float, optional): Moderation index for L1 distortion. Default is 0.
@@ -149,7 +152,7 @@ def apply_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0, m
     Returns:
         dict: Distorted scores with all L1 distortions applied.
     """
-    distorted_scores = apply_integrity_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0)
+    distorted_scores = apply_integrity_distortion_L1(real_scores, passing_marks, collusion_index, slope_L0, delta)
     distorted_scores = {
         subject: apply_moderation_distortion(scores, moderation_index_L1) for subject, scores in distorted_scores.items()
     }
@@ -193,6 +196,7 @@ def simulate_test_scores(
     L2_retest_percentage_students, 
     collusion_index, 
     slope_L0=0.1, 
+    delta=0, 
     moderation_index_L1=0, 
     moderation_index_L2=0, 
     measurement_error_mean=0, 
@@ -213,6 +217,7 @@ def simulate_test_scores(
         L2_retest_percentage_students (float): Percentage of students retested at the L2 level (0 to 100).
         collusion_index (float): Collusion index for L1 integrity distortion (0 to 1).
         slope_L0 (float, optional): Slope for L0 integrity distortion. Default is 0.1.
+        delta (float, optional): The marks below the passing mark at which teacher gives passing marks. Default is 0.
         moderation_index_L1 (float, optional): Moderation index for L1 distortion. Default is 0.
         moderation_index_L2 (float, optional): Moderation index for L2 distortion. Default is 0.
         measurement_error_mean (float, optional): Mean of the normal distribution for measurement error. Default is 0.
@@ -276,6 +281,7 @@ def simulate_test_scores(
                         real_scores[student_id], 
                         passing_marks, 
                         slope_L0=slope_L0, 
+                        delta=delta, 
                         measurement_error_mean=measurement_error_mean, 
                         measurement_error_std_dev=measurement_error_std_dev
                     )
@@ -316,6 +322,7 @@ def simulate_test_scores(
                         passing_marks, 
                         collusion_index, 
                         slope_L0=slope_L0, 
+                        delta=delta, 
                         measurement_error_mean=measurement_error_mean, 
                         measurement_error_std_dev=measurement_error_std_dev, 
                         moderation_index_L1=moderation_index_L1
