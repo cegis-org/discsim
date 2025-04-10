@@ -374,13 +374,14 @@ def simulate_test_scores(
 
     return nested_scores
 
-def plot_nested_scores(nested_scores, subjects):
+def plot_nested_scores(nested_scores, subjects, subjects_params):
     """
     Plot the distribution of real scores and compare them with L0, L1, and L2 scores.
 
     Args:
         nested_scores (dict): The nested dictionary containing scores organized by L2, L1, and schools.
         subjects (list): List of subjects to plot (e.g., ["Maths", "English", "Science"]).
+        subjects_params (dict): Dictionary containing parameters for each subject, including passing marks.
     """
     # Collect all scores for each subject
     real_scores = {subject: [] for subject in subjects}
@@ -426,6 +427,7 @@ def plot_nested_scores(nested_scores, subjects):
     tick_fontsize = 12
 
     for i, subject in enumerate(subjects):
+        passing_mark = subjects_params[subject]['passing_mark']
         # Plot histogram of real scores
         axes[0, i].hist(real_scores[subject], bins=20, color="black", alpha=0.7)
         axes[0, i].set_title(f"Real Scores Distribution - {subject}", fontsize=title_fontsize)
@@ -435,6 +437,7 @@ def plot_nested_scores(nested_scores, subjects):
 
         # Scatter plot: Real vs L0 scores
         axes[1, i].scatter(real_scores[subject], L0_scores[subject], alpha=0.5, color="black")
+        axes[1, i].axvline(passing_mark, color="red", linestyle="--", label="Passing Mark")
         axes[1, i].set_title(f"Real vs L0 Scores - {subject}", fontsize=title_fontsize)
         axes[1, i].set_xlabel("Real Scores", fontsize=label_fontsize)
         axes[1, i].set_ylabel("L0 Scores", fontsize=label_fontsize)
@@ -443,6 +446,7 @@ def plot_nested_scores(nested_scores, subjects):
 
         # Scatter plot: Real vs L1 scores
         axes[2, i].scatter(L1_real_scores[subject], L1_scores[subject], alpha=0.5, color="black")
+        axes[2, i].axvline(passing_mark, color="red", linestyle="--", label="Passing Mark")
         axes[2, i].set_title(f"Real vs L1 Scores - {subject}", fontsize=title_fontsize)
         axes[2, i].set_xlabel("Real Scores (L1 Retested)", fontsize=label_fontsize)
         axes[2, i].set_ylabel("L1 Scores", fontsize=label_fontsize)
@@ -451,6 +455,7 @@ def plot_nested_scores(nested_scores, subjects):
 
         # Scatter plot: Real vs L2 scores
         axes[3, i].scatter(L2_real_scores[subject], L2_scores[subject], alpha=0.5, color="black")
+        axes[3, i].axvline(passing_mark, color="red", linestyle="--", label="Passing Mark")
         axes[3, i].set_title(f"Real vs L2 Scores - {subject}", fontsize=title_fontsize)
         axes[3, i].set_xlabel("Real Scores (L2 Retested)", fontsize=label_fontsize)
         axes[3, i].set_ylabel("L2 Scores", fontsize=label_fontsize)
