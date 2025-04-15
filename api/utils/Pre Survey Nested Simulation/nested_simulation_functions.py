@@ -23,7 +23,7 @@ def generate_real_scores(num_students, subjects_params):
         )
     return real_scores
 
-def apply_integrity_distortion(scores, passing_mark, slope, delta):
+def apply_integrity_distortion(scores, passing_mark, minimum_marks, delta):
     """
     Apply integrity distortion to scores.
     
@@ -36,8 +36,8 @@ def apply_integrity_distortion(scores, passing_mark, slope, delta):
     Returns:
         np.ndarray: Distorted scores with integrity distortion applied.
     """
-    distortion = np.maximum(0, passing_mark + delta - scores) * slope
-    distorted_scores = scores + distortion
+    slope = (passing_mark - minimum_marks)/(passing_mark - delta)
+    distorted_scores = scores*slope + minimum_marks
     return np.clip(distorted_scores, 0, 100)
 
 def apply_integrity_distortion_L0(real_scores, passing_marks, slope_L0, delta):
@@ -437,29 +437,44 @@ def plot_nested_scores(nested_scores, subjects, passing_marks):
 
         # Scatter plot: Real vs L0 scores
         axes[1, i].scatter(real_scores[subject], L0_scores[subject], alpha=0.5, color="black")
+        # Vertical line showing passing marks
         axes[1, i].axvline(passing_mark, color="red", linestyle="--", label="Passing Mark")
+        # Horizontal line showing passing marks
+        axes[1, i].axhline(passing_mark, color="red", linestyle="--", label="Passing Mark")
         axes[1, i].set_title(f"Real vs L0 Scores - {subject}", fontsize=title_fontsize)
         axes[1, i].set_xlabel("Real Scores", fontsize=label_fontsize)
         axes[1, i].set_ylabel("L0 Scores", fontsize=label_fontsize)
         axes[1, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[1, i].set_xlim(0, 100)
+        axes[1, i].set_ylim(0, 100)
         axes[1, i].grid()
 
         # Scatter plot: Real vs L1 scores
         axes[2, i].scatter(L1_real_scores[subject], L1_scores[subject], alpha=0.5, color="black")
+        # Vertical line showing passing marks
         axes[2, i].axvline(passing_mark, color="red", linestyle="--", label="Passing Mark")
+        # Horizontal line showing passing marks
+        axes[2, i].axhline(passing_mark, color="red", linestyle="--", label="Passing Mark")
         axes[2, i].set_title(f"Real vs L1 Scores - {subject}", fontsize=title_fontsize)
         axes[2, i].set_xlabel("Real Scores (L1 Retested)", fontsize=label_fontsize)
         axes[2, i].set_ylabel("L1 Scores", fontsize=label_fontsize)
         axes[2, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[2, i].set_xlim(0, 100)
+        axes[2, i].set_ylim(0, 100)
         axes[2, i].grid()
 
         # Scatter plot: Real vs L2 scores
         axes[3, i].scatter(L2_real_scores[subject], L2_scores[subject], alpha=0.5, color="black")
+        # Vertical line showing passing marks
         axes[3, i].axvline(passing_mark, color="red", linestyle="--", label="Passing Mark")
+        # Horizontal line showing passing marks
+        axes[3, i].axhline(passing_mark, color="red", linestyle="--", label="Passing Mark")
         axes[3, i].set_title(f"Real vs L2 Scores - {subject}", fontsize=title_fontsize)
         axes[3, i].set_xlabel("Real Scores (L2 Retested)", fontsize=label_fontsize)
         axes[3, i].set_ylabel("L2 Scores", fontsize=label_fontsize)
         axes[3, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[3, i].set_xlim(0, 100)
+        axes[3, i].set_ylim(0, 100)
         axes[3, i].grid()
 
     plt.tight_layout()
@@ -587,6 +602,13 @@ def calculate_disc_scores(nested_scores, method, passing_marks):
 
     # L0 vs L1
     plot_histogram(axes[2], L0_vs_L1_scores, "L0 vs L1 Discrepancy")
+
+    # Scatter plot of L0 - L1 discrepancy versus real score
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(L0_vs_L1_scores, alpha=0.5, color="black")
+    ax.set_title("L0 vs L1 Discrepancy vs L0 vs L2 Discrepancy", fontsize=title_fontsize)
+    ax.set_xlabel("L0 vs L1 Discrepancy", fontsize=label_fontsize)
+    ax.set_ylabel("L0 vs L2 Discrepancy", fontsize=label_fontsize)
 
     plt.tight_layout()
     plt.show()
