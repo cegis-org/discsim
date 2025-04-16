@@ -447,8 +447,8 @@ def plot_nested_scores(nested_scores, subjects, passing_marks):
         axes[1, i].set_xlabel("Real Scores", fontsize=label_fontsize)
         axes[1, i].set_ylabel("L0 Scores", fontsize=label_fontsize)
         axes[1, i].tick_params(axis="both", labelsize=tick_fontsize)
-        axes[1, i].set_xlim(0, 100)
-        axes[1, i].set_ylim(0, 100)
+        axes[1, i].set_xlim(-5, 105)
+        axes[1, i].set_ylim(-5, 105)
         axes[1, i].grid()
 
         # Scatter plot: Real vs L1 scores
@@ -461,8 +461,8 @@ def plot_nested_scores(nested_scores, subjects, passing_marks):
         axes[2, i].set_xlabel("Real Scores (L1 Retested)", fontsize=label_fontsize)
         axes[2, i].set_ylabel("L1 Scores", fontsize=label_fontsize)
         axes[2, i].tick_params(axis="both", labelsize=tick_fontsize)
-        axes[2, i].set_xlim(0, 100)
-        axes[2, i].set_ylim(0, 100)
+        axes[2, i].set_xlim(-5, 105)
+        axes[2, i].set_ylim(-5, 105)
         axes[2, i].grid()
 
         # Scatter plot: Real vs L2 scores
@@ -475,14 +475,14 @@ def plot_nested_scores(nested_scores, subjects, passing_marks):
         axes[3, i].set_xlabel("Real Scores (L2 Retested)", fontsize=label_fontsize)
         axes[3, i].set_ylabel("L2 Scores", fontsize=label_fontsize)
         axes[3, i].tick_params(axis="both", labelsize=tick_fontsize)
-        axes[3, i].set_xlim(0, 100)
-        axes[3, i].set_ylim(0, 100)
+        axes[3, i].set_xlim(-5, 105)
+        axes[3, i].set_ylim(-5, 105)
         axes[3, i].grid()
 
     plt.tight_layout()
     plt.show()
 
-def calculate_disc_scores(nested_scores, method, passing_marks):
+def calculate_disc_scores(nested_scores, method, passing_marks, subjects):
     """
     Calculate discrepancy scores for three pairs of scores: L0 vs L2, L1 vs L2, and L0 vs L1.
     For each L0 (school), calculate the discrepancy score for L0 vs L2 and L0 vs L1.
@@ -605,12 +605,68 @@ def calculate_disc_scores(nested_scores, method, passing_marks):
     # L0 vs L1
     plot_histogram(axes[2], L0_vs_L1_scores, "L0 vs L1 Discrepancy")
 
-    # Scatter plot of L0 - L1 discrepancy versus real score
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.scatter(L0_vs_L1_scores, alpha=0.5, color="black")
-    ax.set_title("L0 vs L1 Discrepancy vs L0 vs L2 Discrepancy", fontsize=title_fontsize)
-    ax.set_xlabel("L0 vs L1 Discrepancy", fontsize=label_fontsize)
-    ax.set_ylabel("L0 vs L2 Discrepancy", fontsize=label_fontsize)
+    # Combined scatter plot for L0 vs L1 and L1 vs L2 discrepancies versus real scores
+    fig, axes = plt.subplots(2, len(subjects), figsize=(6 * len(subjects), 12))
+
+    # Ensure axes is a 2D array even if there's only one subject
+    if len(subjects) == 1:
+        axes = np.array([axes]).T
+
+    # Iterate over each subject
+    for i, subject in enumerate(subjects):
+        real_scores_for_L0_vs_L1 = []
+        discrepancies_for_L0_vs_L1 = []
+        real_scores_for_L1_vs_L2 = []
+        discrepancies_for_L1_vs_L2 = []
+
+        # Traverse the nested_scores dictionary to calculate discrepancies for the current subject
+        for l2_data in nested_scores.values():
+            for l1_data in l2_data.values():
+                for school_data in l1_data.values():
+                    for student_id in school_data["real_scores"]:
+                        # Check if the student has scores for L0, L1, and L2 for the current subject
+                        if (
+                            subject in school_data["real_scores"][student_id]
+                            and subject in school_data["L0_scores"].get(student_id, {})
+                            and subject in school_data["L1_scores"].get(student_id, {})
+                        ):
+                            # Extract real score and calculate L0 vs L1 discrepancy
+                            real_score = school_data["real_scores"][student_id][subject]
+                            real_scores_for_L0_vs_L1.append(real_score)
+                            L0_score = school_data["L0_scores"][student_id][subject]
+                            L1_score = school_data["L1_scores"][student_id][subject]
+                            discrepancy_L0_L1 = discrepancy_score([L0_score], [L1_score], method)
+                            discrepancies_for_L0_vs_L1.append(discrepancy_L0_L1)
+
+                        # Check if the student has scores for L1 and L2 for the current subject
+                        if (
+                            subject in school_data["real_scores"][student_id]
+                            and subject in school_data["L1_scores"].get(student_id, {})
+                            and subject in school_data["L2_scores"].get(student_id, {})
+                        ):
+                            # Extract real score and calculate L1 vs L2 discrepancy
+                            real_score = school_data["real_scores"][student_id][subject]
+                            real_scores_for_L1_vs_L2.append(real_score)
+                            L1_score = school_data["L1_scores"][student_id][subject]
+                            L2_score = school_data["L2_scores"][student_id][subject]
+                            discrepancy_L1_L2 = discrepancy_score([L1_score], [L2_score], method)
+                            discrepancies_for_L1_vs_L2.append(discrepancy_L1_L2)
+
+        # Plot L0 vs L1 discrepancy for the current subject
+        axes[0, i].scatter(real_scores_for_L0_vs_L1, discrepancies_for_L0_vs_L1, alpha=0.5, color="black")
+        axes[0, i].set_title(f"{subject} (L0 vs L1)", fontsize=title_fontsize)
+        axes[0, i].set_xlabel("Real Scores", fontsize=label_fontsize)
+        axes[0, i].set_ylabel("L0 vs L1 Discrepancy\nstudent-wise", fontsize=label_fontsize)
+        axes[0, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[0, i].grid()
+
+        # Plot L1 vs L2 discrepancy for the current subject
+        axes[1, i].scatter(real_scores_for_L1_vs_L2, discrepancies_for_L1_vs_L2, alpha=0.5, color="black")
+        axes[1, i].set_title(f"{subject} (L1 vs L2)", fontsize=title_fontsize)
+        axes[1, i].set_xlabel("Real Scores", fontsize=label_fontsize)
+        axes[1, i].set_ylabel("L1 vs L2 Discrepancy\nstudent-wise", fontsize=label_fontsize)
+        axes[1, i].tick_params(axis="both", labelsize=tick_fontsize)
+        axes[1, i].grid()
 
     plt.tight_layout()
     plt.show()
