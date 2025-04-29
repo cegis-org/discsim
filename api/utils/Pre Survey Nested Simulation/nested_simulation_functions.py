@@ -225,6 +225,14 @@ def simulate_test_scores(
         measurement_error_mean (float, optional): Mean of the normal distribution for measurement error. Default is 0.
         measurement_error_std_dev (float, optional): Standard deviation of the normal distribution for measurement error. Default is 1.
 
+        4 structural parameters: number of L2s, number of L1s per L2, number of schools per L1, and number of students per school.
+        3 sampling strategy parameters: percentage of students retested at L1, percentage of schools retested at L2, and percentage of students retested at L2.
+        7 distortion parameters: 
+            Common: measurement error mean, measurement error standard deviation
+            L0: minimum marks, delta
+            L1: collusion index, moderation index
+            L2: moderation index  
+        3 subject-wise parameters: mean and std_dev of marks, and passing marks.
     Returns:
         dict: A nested dictionary containing simulated scores organized into L2, L1, and L0 units:
             {
