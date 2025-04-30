@@ -2,6 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from disc_score import discrepancy_score
+import scipy.stats as stats
 
 def generate_real_scores_per_subject(num_students, mean, std_dev, granularity):
     """
@@ -490,6 +491,13 @@ def plot_nested_scores(nested_scores, subjects, passing_marks):
     plt.tight_layout()
     plt.show()
 
+# Helper function to binarize scores into pass/fail
+def binarize_scores(scores, passing_marks):
+    binarized = []
+    for subject, score in scores.items():
+        binarized.append(score >= passing_marks[subject])
+    return binarized
+
 def calculate_disc_scores(nested_scores, method, passing_marks, subjects):
     """
     Calculate discrepancy scores for three pairs of scores: L0 vs L2, L1 vs L2, and L0 vs L1.
@@ -509,13 +517,6 @@ def calculate_disc_scores(nested_scores, method, passing_marks, subjects):
     L0_vs_L2_scores = []
     L1_vs_L2_scores = []
     L0_vs_L1_scores = []
-
-    # Helper function to binarize scores into pass/fail
-    def binarize_scores(scores, passing_marks):
-        binarized = []
-        for subject, score in scores.items():
-            binarized.append(score >= passing_marks[subject])
-        return binarized
 
     # Traverse the nested_scores dictionary to calculate discrepancy scores
     for l2_key, l2_data in nested_scores.items():
@@ -680,6 +681,128 @@ def calculate_disc_scores(nested_scores, method, passing_marks, subjects):
     plt.show()
 
     return results
+
+def rank_units(truth_scores):
+    """
+    Rank L0s based on their truth scores.
+
+    Args:
+        truth_scores (list): List of tuples where each tuple contains (L0_key, truth_score).
+
+    Returns:
+        list: List of L0 keys ranked by their truth scores in descending order.
+    """
+    # Sort the list of tuples by the truth score in descending order
+    sorted_units = sorted(truth_scores, key=lambda x: x[1], reverse=True)
+    # Extract and return only the L0 keys in ranked order
+    return [unit[0] for unit in sorted_units]
+
+def compare_top_ranks(real_ranks, measured_ranks, n_L0s_reward):
+    """
+    Compare the top X ranks between real and measured rankings.
+    """
+    real_top = set(real_ranks[:n_L0s_reward])
+    measured_top = set(measured_ranks[:n_L0s_reward])
+    return len(real_top & measured_top)
+
+def get_high_scoring_L0s(
+    students_per_school,
+    subjects_params,
+    passing_marks,
+    minimum_marks,
+    delta,
+    n_schools_per_L1,
+    collusion_index,
+    measurement_error_mean,
+    measurement_error_std_dev,
+    moderation_index_L1,
+    method,
+    n_L0s_reward,
+    n_simulations
+):
+    """
+    Main function to calculate the number of L0s with high truth scores as classified by L1 that are truly high-scoring L0s.
+    """
+    overlap_counts = []
+
+    for _ in range(n_simulations):
+        # Simulate scores
+        nested_scores = simulate_test_scores(
+            students_per_school,
+            subjects_params,
+            passing_marks,
+            minimum_marks,
+            delta,
+            n_schools_per_L1,
+            1, # n_L1s_per_L2, set to 1 because we are only simulating one L1
+            1, # n_L2s, set to 1 because we are only interested in L0 - L1 comparison here
+            L1_retest_percentage=100,
+            L2_retest_percentage_schools=0,
+            L2_retest_percentage_students=0,
+            collusion_index=collusion_index,
+            moderation_index_L1=moderation_index_L1,
+            measurement_error_mean=measurement_error_mean,
+            measurement_error_std_dev=measurement_error_std_dev
+        )
+
+        # Calculate real truth scores and ranks
+        real_truth_scores = []
+        for l2_data in nested_scores.values():
+            for l1_data in l2_data.values():
+                for school_key, school_data in l1_data.items():
+                    real_scores = []
+                    L0_scores = []
+
+                    for student_id in school_data["real_scores"]:
+                        if method in ["percent_non_match", "directional_percent_non_match"]:
+                            real_scores.extend(binarize_scores(school_data["real_scores"][student_id], 
+                                                            passing_marks))
+                            L0_scores.extend(binarize_scores(school_data["L0_scores"][student_id], passing_marks))
+
+                        else:
+                            real_scores.extend(school_data["real_scores"][student_id].values())
+                            L0_scores.extend(school_data["L0_scores"][student_id].values())
+
+                    real_truth_scores.append((school_key, discrepancy_score(real_scores, L0_scores, method)))
+
+        assert(len(real_truth_scores) == n_schools_per_L1), f"Expected {n_schools_per_L1} real truth scores, but got {len(real_truth_scores)}"
+        real_ranks = rank_units(real_truth_scores)
+
+        # Calculate measured truth scores and ranks
+        measured_truth_scores = []
+        for l2_data in nested_scores.values():
+            for l1_data in l2_data.values():
+                for school_key, school_data in l1_data.items():
+                    L1_scores = []
+                    L0_scores = []
+
+                    for student_id in school_data["L0_scores"]:
+                        if student_id in school_data["L1_scores"]:
+                            if method in ["percent_non_match", "directional_percent_non_match"]:
+                                L1_scores.extend(binarize_scores(school_data["L1_scores"][student_id], 
+                                                                passing_marks))
+                                L0_scores.extend(binarize_scores(school_data["L0_scores"][student_id], passing_marks))
+
+                            else:
+                                L1_scores.extend(school_data["L1_scores"][student_id].values())
+                                L0_scores.extend(school_data["L0_scores"][student_id].values())
+
+                    measured_truth_scores.append((school_key, discrepancy_score(L0_scores, L1_scores, method)))
+
+        assert(len(measured_truth_scores) == n_schools_per_L1), f"Expected {n_schools_per_L1} measured truth scores, but got {len(measured_truth_scores)}"
+        measured_ranks = rank_units(measured_truth_scores)
+
+        # Compare top X ranks
+        overlap = compare_top_ranks(real_ranks, measured_ranks, n_L0s_reward)
+        overlap_counts.append(overlap)
+
+    # Calculate mean and 95% confidence intervals
+    mean_overlap = np.mean(overlap_counts)
+    ci_lower, ci_upper = stats.t.interval(
+        0.95, len(overlap_counts) - 1, loc=mean_overlap, scale=stats.sem(overlap_counts)
+    )
+
+    return mean_overlap, (ci_lower, ci_upper)
 
 
 
