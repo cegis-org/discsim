@@ -727,6 +727,10 @@ def get_high_scoring_L0s(
     overlap_counts = []
     L2_L1_truth_scores = []
 
+    # Initialize the figure for scatter plot if required
+    if plot_truth_scores:
+        plt.figure(figsize=(4, 4))
+
     for _ in range(n_simulations):
         # Simulate scores
         nested_scores = simulate_test_scores(
@@ -819,6 +823,21 @@ def get_high_scoring_L0s(
 
             L2_L1_truth_scores.append(discrepancy_score(L1_scores, L2_scores, method))
 
+        # Plot real vs measured truth scores if required
+        if plot_truth_scores:
+            real_scores = [score[1] for score in real_truth_scores]
+            measured_scores = [score[1] for score in measured_truth_scores]
+            plt.scatter(real_scores, measured_scores, alpha=0.5, color="black", s=10)
+
+    # Finalize the scatter plot if required
+    if plot_truth_scores:
+        plt.title("Real vs Measured Truth Scores", fontsize=16)
+        plt.xlabel("Real Truth Scores", fontsize=14)
+        plt.ylabel("Measured Truth Scores", fontsize=14)
+        plt.grid()
+        plt.tight_layout()
+        plt.show()
+
     L2_L1_truth_score = np.mean(L2_L1_truth_scores, axis=0)
 
     # Plot real and measured truth scores
@@ -840,10 +859,13 @@ def get_high_scoring_L0s(
     # Calculate mean and 95% confidence intervals
     mean_overlap = np.mean(overlap_counts)
     ci_lower, ci_upper = stats.t.interval(
-        0.95, len(overlap_counts) - 1, loc=mean_overlap, scale=stats.sem(overlap_counts)
+        0.95, # Confidence
+        len(overlap_counts) - 1, # Degrees of freedom
+        loc=mean_overlap, # Sample mean
+        scale=stats.sem(overlap_counts) # Standard error of the mean
     )
 
-    return mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score
+    return overlap_counts, mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score
 
 
 def L1_reliability(L1_collusion_index_list, 
@@ -866,12 +888,13 @@ def L1_reliability(L1_collusion_index_list,
     n_real_L0s_mean = []
     n_real_L0s_ci = []
     L2_L1_truth_scores = []
+    overlap_counts = {}
 
-    for L1_collusion_index in L1_collusion_index_list:
+    for i, L1_collusion_index in enumerate(L1_collusion_index_list):
 
         print(f"Simulating with L1 collusion index: {L1_collusion_index}")
         # Get mean and confidence intervals for the number of real L0s
-        mean_overlap, ci, L2_L1_truth_score = get_high_scoring_L0s(
+        overlap_counts[i], mean_overlap, ci, L2_L1_truth_score = get_high_scoring_L0s(
             students_per_school,
             subjects_params,
             passing_marks,
@@ -887,23 +910,27 @@ def L1_reliability(L1_collusion_index_list,
             n_simulations
         )
         n_real_L0s_mean.append(mean_overlap)
-        n_real_L0s_ci.append(ci)
+        n_real_L0s_ci.append((mean_overlap - ci[0], ci[1] - mean_overlap))
         L2_L1_truth_scores.append(L2_L1_truth_score)
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.errorbar(L2_L1_truth_scores, n_real_L0s_mean, yerr=np.array(n_real_L0s_ci).T, 
+    lower_errors, upper_errors = zip(*n_real_L0s_ci)
+    ax.errorbar(L2_L1_truth_scores, n_real_L0s_mean, yerr=[lower_errors, upper_errors], 
                 fmt='o', color='black', capsize=5)
-    ax.set_title("Dependence of L1 Confidence Guarantee on L2-L1 Truth Score", fontsize=16)
+    # Show number of L0s rewarded as a dashed blue horizontal line
+    ax.axhline(y=n_L0s_reward, color='blue', linestyle='--', label='Number of L0s Rewarded')
+    ax.legend()
+    ax.set_title("Dependence of L1 Confidence Guarantee on L2-L1 Truth Score", fontsize=16) 
     ax.set_xlabel("L2-L1 Truth Score", fontsize=14)
     ax.set_ylabel("Number of Real Green Zone L0s", fontsize=14)
     ax.tick_params(axis="both", labelsize=12)
-    #ax.set_ylim(0, max(n_real_L0s_mean) + 1)
-    #ax.set_xlim(min(L1_collusion_index_list) - 0.1, max(L1_collusion_index_list) + 0.1)
+    ax.set_ylim(0, n_L0s_reward*1.2)
+    ax.set_xlim(min(L2_L1_truth_scores) - 0.1, max(L2_L1_truth_scores) + 0.1)
     ax.grid()
     plt.tight_layout()
     plt.show()
 
-    return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
-        
+    return(overlap_counts, n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
+
 
