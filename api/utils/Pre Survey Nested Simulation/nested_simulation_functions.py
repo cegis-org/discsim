@@ -37,8 +37,10 @@ def apply_integrity_distortion(scores, passing_mark, minimum_marks, delta):
     Returns:
         np.ndarray: Distorted scores with integrity distortion applied.
     """
-    slope = (passing_mark - minimum_marks) / (passing_mark - delta)
-    distorted_scores = scores * slope + minimum_marks
+    slope = (delta - minimum_marks)/(passing_mark - delta)
+    distortion = scores * slope + minimum_marks
+    distorted_scores = scores + distortion
+    # Ensure scores are between 0 and 100
     return np.clip(distorted_scores, 0, 100)
 
 def apply_integrity_distortion_L0(real_scores, passing_marks, minimum_marks, delta):
@@ -81,9 +83,13 @@ def apply_integrity_distortion_L1(real_scores, passing_marks, minimum_marks_L0, 
     distorted_scores = {}
     for subject, scores in real_scores.items():
         passing_mark = passing_marks[subject]
-        min_marks_L1 = minimum_marks_L0[subject] * collusion_index
-        delta_L1 = delta_L0 * collusion_index
-        distorted_scores[subject] = apply_integrity_distortion(scores, passing_mark, min_marks_L1, delta_L1)
+        minimum_marks = minimum_marks_L0[subject]
+        # min_marks_L1 = minimum_marks_L0[subject] * collusion_index
+        # delta_L1 = delta_L0 * collusion_index
+        distorted_scores[subject] = apply_integrity_distortion(scores, passing_mark, minimum_marks, delta_L0)
+        distortion = [(distorted_scores[subject][i] - scores[i])*collusion_index for i in range(len(scores))]
+        distorted_scores[subject] = np.clip([scores[i] + distortion[i] for i in range(len(scores))], 0, 100)
+
     return distorted_scores
 
 def apply_moderation_distortion(scores, moderation_index):
@@ -712,6 +718,7 @@ def get_high_scoring_L0s(
     minimum_marks,
     delta,
     n_schools_per_L1,
+    L1_retest_percentage,
     collusion_index,
     measurement_error_mean,
     measurement_error_std_dev,
@@ -742,7 +749,7 @@ def get_high_scoring_L0s(
             n_schools_per_L1,
             1, # n_L1s_per_L2, set to 1 because we are only simulating one L1
             1, # n_L2s, set to 1 because we are only interested in L0 - L1 comparison here
-            L1_retest_percentage=100,
+            L1_retest_percentage,
             L2_retest_percentage_schools=100,
             L2_retest_percentage_students=100,
             collusion_index=collusion_index,
@@ -875,8 +882,9 @@ def L1_reliability(L1_collusion_index_list,
     minimum_marks,
     delta,
     n_schools_per_L1,
+    L1_retest_percentage_list,
     measurement_error_mean,
-    measurement_error_std_dev,
+    measurement_error_std_dev_list,
     moderation_index_L1,
     method,
     n_L0s_reward,
@@ -888,30 +896,36 @@ def L1_reliability(L1_collusion_index_list,
     n_real_L0s_mean = []
     n_real_L0s_ci = []
     L2_L1_truth_scores = []
-    overlap_counts = {}
 
-    for i, L1_collusion_index in enumerate(L1_collusion_index_list):
+    for L1_collusion_index in L1_collusion_index_list:
 
-        print(f"Simulating with L1 collusion index: {L1_collusion_index}")
-        # Get mean and confidence intervals for the number of real L0s
-        overlap_counts[i], mean_overlap, ci, L2_L1_truth_score = get_high_scoring_L0s(
-            students_per_school,
-            subjects_params,
-            passing_marks,
-            minimum_marks,
-            delta,
-            n_schools_per_L1,
-            L1_collusion_index,
-            measurement_error_mean,
-            measurement_error_std_dev,
-            moderation_index_L1,
-            method,
-            n_L0s_reward,
-            n_simulations
-        )
-        n_real_L0s_mean.append(mean_overlap)
-        n_real_L0s_ci.append((mean_overlap - ci[0], ci[1] - mean_overlap))
-        L2_L1_truth_scores.append(L2_L1_truth_score)
+        print(f"L1 collusion index: {L1_collusion_index}")
+        for measurement_error_std_dev in measurement_error_std_dev_list:
+            
+            print(f"     Measurement error std dev: {measurement_error_std_dev}")
+            for L1_retest_percentage in L1_retest_percentage_list:
+
+                print(f"         L1 retest percentage: {L1_retest_percentage}")
+                # Get mean and confidence intervals for the number of real L0s
+                _, mean_overlap, ci, L2_L1_truth_score = get_high_scoring_L0s(
+                    students_per_school,
+                    subjects_params,
+                    passing_marks,
+                    minimum_marks,
+                    delta,
+                    n_schools_per_L1,
+                    L1_retest_percentage,
+                    L1_collusion_index,
+                    measurement_error_mean,
+                    measurement_error_std_dev,
+                    moderation_index_L1,
+                    method,
+                    n_L0s_reward,
+                    n_simulations
+                )
+                n_real_L0s_mean.append(mean_overlap)
+                n_real_L0s_ci.append((mean_overlap - ci[0], ci[1] - mean_overlap))
+                L2_L1_truth_scores.append(L2_L1_truth_score)
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -931,6 +945,6 @@ def L1_reliability(L1_collusion_index_list,
     plt.tight_layout()
     plt.show()
 
-    return(overlap_counts, n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
+    return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
 
 
