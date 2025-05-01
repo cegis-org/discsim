@@ -718,12 +718,14 @@ def get_high_scoring_L0s(
     moderation_index_L1,
     method,
     n_L0s_reward,
-    n_simulations
+    n_simulations,
+    plot_truth_scores=False,
 ):
     """
     Main function to calculate the number of L0s with high truth scores as classified by L1 that are truly high-scoring L0s.
     """
     overlap_counts = []
+    L2_L1_truth_scores = []
 
     for _ in range(n_simulations):
         # Simulate scores
@@ -737,8 +739,8 @@ def get_high_scoring_L0s(
             1, # n_L1s_per_L2, set to 1 because we are only simulating one L1
             1, # n_L2s, set to 1 because we are only interested in L0 - L1 comparison here
             L1_retest_percentage=100,
-            L2_retest_percentage_schools=0,
-            L2_retest_percentage_students=0,
+            L2_retest_percentage_schools=100,
+            L2_retest_percentage_students=100,
             collusion_index=collusion_index,
             moderation_index_L1=moderation_index_L1,
             measurement_error_mean=measurement_error_mean,
@@ -763,7 +765,7 @@ def get_high_scoring_L0s(
                             real_scores.extend(school_data["real_scores"][student_id].values())
                             L0_scores.extend(school_data["L0_scores"][student_id].values())
 
-                    real_truth_scores.append((school_key, discrepancy_score(real_scores, L0_scores, method)))
+                    real_truth_scores.append((school_key, discrepancy_score(L0_scores, real_scores, method)))
 
         assert(len(real_truth_scores) == n_schools_per_L1), f"Expected {n_schools_per_L1} real truth scores, but got {len(real_truth_scores)}"
         real_ranks = rank_units(real_truth_scores)
@@ -796,13 +798,112 @@ def get_high_scoring_L0s(
         overlap = compare_top_ranks(real_ranks, measured_ranks, n_L0s_reward)
         overlap_counts.append(overlap)
 
+        # Calculate L2-L1 truth score
+        for l2_data in nested_scores.values():
+            for l1_data in l2_data.values():
+                for school_key, school_data in l1_data.items():
+                    if school_data['L2_scores']:
+                        L2_scores = []
+                        L1_scores = []
+
+                        for student_id in school_data["real_scores"]:
+                            if student_id in school_data["L2_scores"]:
+                                if method in ["percent_non_match", "directional_percent_non_match"]:
+                                    L1_scores.extend(binarize_scores(school_data["L1_scores"][student_id], 
+                                                                    passing_marks))
+                                    L2_scores.extend(binarize_scores(school_data["L2_scores"][student_id], passing_marks))
+
+                                else:
+                                    L1_scores.extend(school_data["L1_scores"][student_id].values())
+                                    L2_scores.extend(school_data["L2_scores"][student_id].values())
+
+            L2_L1_truth_scores.append(discrepancy_score(L1_scores, L2_scores, method))
+
+    L2_L1_truth_score = np.mean(L2_L1_truth_scores, axis=0)
+
+    # Plot real and measured truth scores
+    if plot_truth_scores:
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+        axes[0].hist([score[1] for score in real_truth_scores], bins=20, color="black", alpha=0.7)
+        axes[0].set_title("Real Truth Scores Distribution", fontsize=16)
+        axes[0].set_xlabel("Truth Score", fontsize=14)
+        axes[0].set_ylabel("Frequency", fontsize=14)
+        axes[0].tick_params(axis="both", labelsize=12)
+        axes[1].hist([score[1] for score in measured_truth_scores], bins=20, color="black", alpha=0.7)
+        axes[1].set_title("Measured Truth Scores Distribution", fontsize=16)
+        axes[1].set_xlabel("Truth Score", fontsize=14)
+        axes[1].set_ylabel("Frequency", fontsize=14)
+        axes[1].tick_params(axis="both", labelsize=12)
+        plt.tight_layout()
+        plt.show()
+
     # Calculate mean and 95% confidence intervals
     mean_overlap = np.mean(overlap_counts)
     ci_lower, ci_upper = stats.t.interval(
         0.95, len(overlap_counts) - 1, loc=mean_overlap, scale=stats.sem(overlap_counts)
     )
 
-    return mean_overlap, (ci_lower, ci_upper)
+    return mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score
 
 
+def L1_reliability(L1_collusion_index_list, 
+                   students_per_school,
+    subjects_params,
+    passing_marks,
+    minimum_marks,
+    delta,
+    n_schools_per_L1,
+    measurement_error_mean,
+    measurement_error_std_dev,
+    moderation_index_L1,
+    method,
+    n_L0s_reward,
+    n_simulations):
+    """
+    Plot the dependance of L1 confidence guarantee (number of real green zone L0s)
+    on the L2-L1 truth score.
+    """
+    n_real_L0s_mean = []
+    n_real_L0s_ci = []
+    L2_L1_truth_scores = []
+
+    for L1_collusion_index in L1_collusion_index_list:
+
+        print(f"Simulating with L1 collusion index: {L1_collusion_index}")
+        # Get mean and confidence intervals for the number of real L0s
+        mean_overlap, ci, L2_L1_truth_score = get_high_scoring_L0s(
+            students_per_school,
+            subjects_params,
+            passing_marks,
+            minimum_marks,
+            delta,
+            n_schools_per_L1,
+            L1_collusion_index,
+            measurement_error_mean,
+            measurement_error_std_dev,
+            moderation_index_L1,
+            method,
+            n_L0s_reward,
+            n_simulations
+        )
+        n_real_L0s_mean.append(mean_overlap)
+        n_real_L0s_ci.append(ci)
+        L2_L1_truth_scores.append(L2_L1_truth_score)
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.errorbar(L2_L1_truth_scores, n_real_L0s_mean, yerr=np.array(n_real_L0s_ci).T, 
+                fmt='o', color='black', capsize=5)
+    ax.set_title("Dependence of L1 Confidence Guarantee on L2-L1 Truth Score", fontsize=16)
+    ax.set_xlabel("L2-L1 Truth Score", fontsize=14)
+    ax.set_ylabel("Number of Real Green Zone L0s", fontsize=14)
+    ax.tick_params(axis="both", labelsize=12)
+    #ax.set_ylim(0, max(n_real_L0s_mean) + 1)
+    #ax.set_xlim(min(L1_collusion_index_list) - 0.1, max(L1_collusion_index_list) + 0.1)
+    ax.grid()
+    plt.tight_layout()
+    plt.show()
+
+    return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
+        
 
