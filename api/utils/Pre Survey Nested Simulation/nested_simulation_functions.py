@@ -733,6 +733,7 @@ def get_high_scoring_L0s(
     """
     overlap_counts = []
     L2_L1_truth_scores = []
+    L0_real_truth_scores = []
 
     # Initialize the figure for scatter plot if required
     if plot_truth_scores:
@@ -836,6 +837,7 @@ def get_high_scoring_L0s(
             measured_scores = [score[1] for score in measured_truth_scores]
             plt.scatter(real_scores, measured_scores, alpha=0.5, color="black", s=10)
 
+        L0_real_truth_scores.append(real_truth_scores)
     # Finalize the scatter plot if required
     if plot_truth_scores:
         plt.title("Real vs Measured Truth Scores", fontsize=16)
@@ -872,7 +874,7 @@ def get_high_scoring_L0s(
         scale=stats.sem(overlap_counts) # Standard error of the mean
     )
 
-    return overlap_counts, mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score
+    return overlap_counts, mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score, L0_real_truth_scores
 
 
 def L1_reliability(L1_collusion_index_list, 
@@ -896,18 +898,23 @@ def L1_reliability(L1_collusion_index_list,
     n_real_L0s_mean = []
     n_real_L0s_ci = []
     L2_L1_truth_scores = []
+    L0_real_truth_scores = {}
 
     for L1_collusion_index in L1_collusion_index_list:
 
+        L0_real_truth_scores[L1_collusion_index] = {}
         print(f"L1 collusion index: {L1_collusion_index}")
+
         for measurement_error_std_dev in measurement_error_std_dev_list:
-            
+
+            L0_real_truth_scores[L1_collusion_index][measurement_error_std_dev] = {}  
             print(f"     Measurement error std dev: {measurement_error_std_dev}")
+
             for L1_retest_percentage in L1_retest_percentage_list:
 
                 print(f"         L1 retest percentage: {L1_retest_percentage}")
                 # Get mean and confidence intervals for the number of real L0s
-                _, mean_overlap, ci, L2_L1_truth_score = get_high_scoring_L0s(
+                _, mean_overlap, ci, L2_L1_truth_score, L0_real = get_high_scoring_L0s(
                     students_per_school,
                     subjects_params,
                     passing_marks,
@@ -926,6 +933,7 @@ def L1_reliability(L1_collusion_index_list,
                 n_real_L0s_mean.append(mean_overlap)
                 n_real_L0s_ci.append((mean_overlap - ci[0], ci[1] - mean_overlap))
                 L2_L1_truth_scores.append(L2_L1_truth_score)
+                L0_real_truth_scores[L1_collusion_index][measurement_error_std_dev][L1_retest_percentage] = L0_real
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -944,6 +952,7 @@ def L1_reliability(L1_collusion_index_list,
     ax.grid()
     plt.tight_layout()
     plt.show()
+
 
     return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
 
