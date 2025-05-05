@@ -3,6 +3,7 @@ import random
 import matplotlib.pyplot as plt
 from disc_score import discrepancy_score
 import scipy.stats as stats
+import utils
 
 def generate_real_scores_per_subject(num_students, mean, std_dev, granularity):
     """
@@ -778,6 +779,8 @@ def get_high_scoring_L0s(
                             L0_scores.extend(school_data["L0_scores"][student_id].values())
 
                     real_truth_scores.append((school_key, discrepancy_score(L0_scores, real_scores, method)))
+                    L0_real_truth_scores.append(discrepancy_score(L0_scores, real_scores, method))
+        # Ensure we have the expected number of real truth scores
 
         assert(len(real_truth_scores) == n_schools_per_L1), f"Expected {n_schools_per_L1} real truth scores, but got {len(real_truth_scores)}"
         real_ranks = rank_units(real_truth_scores)
@@ -837,7 +840,6 @@ def get_high_scoring_L0s(
             measured_scores = [score[1] for score in measured_truth_scores]
             plt.scatter(real_scores, measured_scores, alpha=0.5, color="black", s=10)
 
-        L0_real_truth_scores.append(real_truth_scores)
     # Finalize the scatter plot if required
     if plot_truth_scores:
         plt.title("Real vs Measured Truth Scores", fontsize=16)
@@ -902,12 +904,10 @@ def L1_reliability(L1_collusion_index_list,
 
     for L1_collusion_index in L1_collusion_index_list:
 
-        L0_real_truth_scores[L1_collusion_index] = {}
         print(f"L1 collusion index: {L1_collusion_index}")
 
         for measurement_error_std_dev in measurement_error_std_dev_list:
 
-            L0_real_truth_scores[L1_collusion_index][measurement_error_std_dev] = {}  
             print(f"     Measurement error std dev: {measurement_error_std_dev}")
 
             for L1_retest_percentage in L1_retest_percentage_list:
@@ -933,7 +933,7 @@ def L1_reliability(L1_collusion_index_list,
                 n_real_L0s_mean.append(mean_overlap)
                 n_real_L0s_ci.append((mean_overlap - ci[0], ci[1] - mean_overlap))
                 L2_L1_truth_scores.append(L2_L1_truth_score)
-                L0_real_truth_scores[L1_collusion_index][measurement_error_std_dev][L1_retest_percentage] = L0_real
+                L0_real_truth_scores[measurement_error_std_dev] = L0_real
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -953,7 +953,22 @@ def L1_reliability(L1_collusion_index_list,
     plt.tight_layout()
     plt.show()
 
+    # Make a figure showing the distribution of L0 truth scores
+    fig, axes = plt.subplots(len(measurement_error_std_dev_list), 1, sharex = True, figsize=(4, 6))
+    for i, measurement_error_std_dev in enumerate(measurement_error_std_dev_list):
+        if len(measurement_error_std_dev_list) == 1:
+            ax = axes
+        else:
+            ax = axes[i]
+        L0_real_scores = L0_real_truth_scores[measurement_error_std_dev]
+        ax.hist(L0_real_scores, bins=20, alpha=1, color="black")
+        ax.set_title(f"Measurement Error Std Dev: {measurement_error_std_dev}", fontsize=12)
+        ax.set_xlabel("Truth Score", fontsize=10)
+        ax.set_ylabel("Frequency", fontsize=10)
+        ax.tick_params(axis="both", labelsize=8)
+    plt.tight_layout()
+    plt.show()
 
-    return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores)
+    return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores, L0_real_truth_scores)
 
 
