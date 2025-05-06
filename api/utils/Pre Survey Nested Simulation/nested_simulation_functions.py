@@ -876,23 +876,23 @@ def get_high_scoring_L0s(
         scale=stats.sem(overlap_counts) # Standard error of the mean
     )
 
-    return overlap_counts, mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score, L0_real_truth_scores
+    return overlap_counts, mean_overlap, (ci_lower, ci_upper), L2_L1_truth_score, L0_real_truth_scores, L2_L1_truth_scores
 
 
 def L1_reliability(L1_collusion_index_list, 
                    students_per_school,
-    subjects_params,
-    passing_marks,
-    minimum_marks,
-    delta,
-    n_schools_per_L1,
-    L1_retest_percentage_list,
-    measurement_error_mean,
-    measurement_error_std_dev_list,
-    moderation_index_L1,
-    method,
-    n_L0s_reward,
-    n_simulations):
+                   subjects_params,
+                   passing_marks,
+                   minimum_marks,
+                   delta,
+                   n_schools_per_L1,
+                   L1_retest_percentage_list,
+                   measurement_error_mean,
+                   measurement_error_std_dev_list,
+                   moderation_index_L1,
+                   method,
+                   n_L0s_reward,
+                   n_simulations):
     """
     Plot the dependance of L1 confidence guarantee (number of real green zone L0s)
     on the L2-L1 truth score.
@@ -901,6 +901,8 @@ def L1_reliability(L1_collusion_index_list,
     n_real_L0s_ci = []
     L2_L1_truth_scores = []
     L0_real_truth_scores = {}
+    all_L2_L1_truth_scores = []
+    all_overlap_counts = []
 
     for L1_collusion_index in L1_collusion_index_list:
 
@@ -914,7 +916,7 @@ def L1_reliability(L1_collusion_index_list,
 
                 print(f"         L1 retest percentage: {L1_retest_percentage}")
                 # Get mean and confidence intervals for the number of real L0s
-                _, mean_overlap, ci, L2_L1_truth_score, L0_real = get_high_scoring_L0s(
+                overlap_counts, mean_overlap, ci, L2_L1_truth_score, L0_real, all_L2_L1_truth_scores = get_high_scoring_L0s(
                     students_per_school,
                     subjects_params,
                     passing_marks,
@@ -934,6 +936,8 @@ def L1_reliability(L1_collusion_index_list,
                 n_real_L0s_ci.append((mean_overlap - ci[0], ci[1] - mean_overlap))
                 L2_L1_truth_scores.append(L2_L1_truth_score)
                 L0_real_truth_scores[measurement_error_std_dev] = L0_real
+                all_overlap_counts.append(overlap_counts)
+                all_L2_L1_truth_scores.append(L2_L1_truth_score)
 
     # Plotting
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -966,6 +970,20 @@ def L1_reliability(L1_collusion_index_list,
         ax.set_xlabel("Truth Score", fontsize=10)
         ax.set_ylabel("Frequency", fontsize=10)
         ax.tick_params(axis="both", labelsize=8)
+    plt.tight_layout()
+    plt.show()
+
+    # Calculate Spearman correlation
+    spearman_corr, _ = stats.spearmanr(all_L2_L1_truth_scores, all_overlap_counts)
+
+    # Make a figure showing a scatter plot of all overlap counts versus L2-L1 truth scores
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(all_L2_L1_truth_scores, all_overlap_counts, alpha=1, color="black")
+    ax.set_title(f"Spearman correlation = {spearman_corr:.2f}", fontsize=16)
+    ax.set_xlabel("L2-L1 Truth Score", fontsize=14)
+    ax.set_ylabel("Overlap Counts", fontsize=14)
+    ax.tick_params(axis="both", labelsize=12)
+    ax.grid()
     plt.tight_layout()
     plt.show()
 
