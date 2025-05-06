@@ -217,7 +217,7 @@ def simulate_test_scores(
 
     Args:
         students_per_school (int): Number of students in each school.
-        subjects_params (dict): Dictionary containing parameters for each subject.
+        subjects_params (dict): Dictionary containing mean, standard deviation and granularity of marks for each subject.
         passing_marks (dict): Dictionary of passing marks for each subject.
         minimum_marks (dict): Dictionary of minimum marks for each subject.
         delta (float): The marks below the passing mark at which teacher gives passing marks.
