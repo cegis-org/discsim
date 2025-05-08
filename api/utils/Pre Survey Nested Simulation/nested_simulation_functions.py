@@ -964,55 +964,56 @@ def L1_reliability(L1_collusion_index_list,
                 all_overlap_counts.append(overlap_counts)
                 all_L2_L1_truth_scores.append(all_L2_L1_truth_scores_cond)
 
-    # Plotting
-    fig, ax = plt.subplots(figsize=(10, 6))
-    lower_errors, upper_errors = zip(*n_real_L0s_ci)
-    ax.errorbar(L2_L1_truth_scores, n_real_L0s_mean, yerr=[lower_errors, upper_errors], 
-                fmt='o', color='black', capsize=5)
-    # Show number of L0s rewarded as a dashed blue horizontal line
-    ax.axhline(y=n_L0s_reward, color='blue', linestyle='--', label='Number of L0s Rewarded')
-    ax.legend()
-    ax.set_title("Dependence of L1 Confidence Guarantee on L2-L1 Discrepancy Score", fontsize=16) 
-    ax.set_xlabel("L2-L1 Discrepancy Score", fontsize=14)
-    ax.set_ylabel("Number of Real Green Zone L0s", fontsize=14)
-    ax.tick_params(axis="both", labelsize=12)
-    ax.set_ylim(0, n_L0s_reward*1.2)
-    ax.set_xlim(min(L2_L1_truth_scores) - 0.1, max(L2_L1_truth_scores) + 0.1)
-    ax.grid()
-    plt.tight_layout()
-    plt.show()
-
-    # Make a figure showing the distribution of L0 truth scores
-    fig, axes = plt.subplots(len(measurement_error_std_dev_list), 1, sharex = True, figsize=(4, 6))
-    for i, measurement_error_std_dev in enumerate(measurement_error_std_dev_list):
-        if len(measurement_error_std_dev_list) == 1:
-            ax = axes
-        else:
-            ax = axes[i]
-        L0_real_scores = L0_real_truth_scores[measurement_error_std_dev]
-        ax.hist(L0_real_scores, bins=20, alpha=1, color="black")
-        ax.set_title(f"Measurement Error Std Dev: {measurement_error_std_dev}", fontsize=12)
-        ax.set_xlabel("Truth Score", fontsize=10)
-        ax.set_ylabel("Frequency", fontsize=10)
-        ax.tick_params(axis="both", labelsize=8)
-    plt.tight_layout()
-    plt.show()
-
     # Calculate Spearman correlation
     all_L2_L1_truth_scores = np.reshape(all_L2_L1_truth_scores, -1)
     all_overlap_counts = np.reshape(all_overlap_counts, -1)
-    spearman_corr, _ = np.round(stats.spearmanr(all_L2_L1_truth_scores, all_overlap_counts), 3)
+    spearman_corr, p_value = np.round(stats.spearmanr(all_L2_L1_truth_scores, all_overlap_counts), 3)
 
-    # Make a figure showing a scatter plot of all overlap counts versus L2-L1 truth scores
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.scatter(all_L2_L1_truth_scores, all_overlap_counts, alpha=1, color="black")
-    ax.set_title("Spearman correlation = {0}".format(spearman_corr), fontsize=16)
-    ax.set_xlabel("L2-L1 Discrepancy Score", fontsize=14)
-    ax.set_ylabel("Overlap Counts", fontsize=14)
-    ax.tick_params(axis="both", labelsize=12)
-    ax.grid()
-    plt.tight_layout()
-    plt.show()
+    # Plotting
+    if make_plots:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        lower_errors, upper_errors = zip(*n_real_L0s_ci)
+        ax.errorbar(L2_L1_truth_scores, n_real_L0s_mean, yerr=[lower_errors, upper_errors], 
+                    fmt='o', color='black', capsize=5)
+        # Show number of L0s rewarded as a dashed blue horizontal line
+        ax.axhline(y=n_L0s_reward, color='blue', linestyle='--', label='Number of L0s Rewarded')
+        ax.legend()
+        ax.set_title("Dependence of L1 Confidence Guarantee on L2-L1 Discrepancy Score", fontsize=16) 
+        ax.set_xlabel("L2-L1 Discrepancy Score", fontsize=14)
+        ax.set_ylabel("Number of Real Green Zone L0s", fontsize=14)
+        ax.tick_params(axis="both", labelsize=12)
+        ax.set_ylim(0, n_L0s_reward*1.2)
+        ax.set_xlim(min(L2_L1_truth_scores) - 0.1, max(L2_L1_truth_scores) + 0.1)
+        ax.grid()
+        plt.tight_layout()
+        plt.show()
+
+        # Make a figure showing the distribution of L0 truth scores
+        fig, axes = plt.subplots(len(measurement_error_std_dev_list), 1, sharex = True, figsize=(4, 6))
+        for i, measurement_error_std_dev in enumerate(measurement_error_std_dev_list):
+            if len(measurement_error_std_dev_list) == 1:
+                ax = axes
+            else:
+                ax = axes[i]
+            L0_real_scores = L0_real_truth_scores[measurement_error_std_dev]
+            ax.hist(L0_real_scores, bins=20, alpha=1, color="black")
+            ax.set_title(f"Measurement Error Std Dev: {measurement_error_std_dev}", fontsize=12)
+            ax.set_xlabel("Truth Score", fontsize=10)
+            ax.set_ylabel("Frequency", fontsize=10)
+            ax.tick_params(axis="both", labelsize=8)
+        plt.tight_layout()
+        plt.show()
+
+        # Make a figure showing a scatter plot of all overlap counts versus L2-L1 truth scores
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.scatter(all_L2_L1_truth_scores, all_overlap_counts, alpha=1, color="black")
+        ax.set_title("Spearman correlation = {0}, p value = {1}".format(spearman_corr, p_value), fontsize=16)
+        ax.set_xlabel("L2-L1 Discrepancy Score", fontsize=14)
+        ax.set_ylabel("Overlap Counts", fontsize=14)
+        ax.tick_params(axis="both", labelsize=12)
+        ax.grid()
+        plt.tight_layout()
+        plt.show()
 
     return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores, L0_real_truth_scores, all_L2_L1_truth_scores, all_overlap_counts)
 
