@@ -321,7 +321,13 @@ def simulate_test_scores(
                     "real_scores": school_real_scores,
                     "L0_scores": school_L0_scores,
                     "L1_scores": {},
-                    "L2_scores": {}
+                    "L2_scores": {},
+                    "distortion parameters": {
+                        "L0": {
+                            "minimum_marks": minimum_marks,
+                            "delta": delta
+                        }
+                    }
                 }
 
     # Apply L1 distortions and organize by L1 units
@@ -348,8 +354,8 @@ def simulate_test_scores(
                     student_id: apply_distortion_L1(
                         real_scores[student_id], 
                         passing_marks, 
-                        minimum_marks, 
-                        delta, 
+                        nested_scores[l2_key][l1_key][school_key]["distortion parameters"]["L0"]["minimum_marks"], 
+                        nested_scores[l2_key][l1_key][school_key]["distortion parameters"]["L0"]["delta"], 
                         collusion_index, 
                         measurement_error_mean=measurement_error_mean, 
                         measurement_error_std_dev=measurement_error_std_dev, 
@@ -1008,7 +1014,7 @@ def L1_reliability(L1_collusion_index_list,
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.scatter(all_L2_L1_truth_scores, all_overlap_counts, alpha=1, color="black")
         ax.set_title("Spearman correlation = {0}, p value = {1}".format(spearman_corr, p_value), fontsize=16)
-        ax.set_xlabel("L2-L1 Discrepancy Score", fontsize=14)
+        ax.set_xlabel("L2-L1 Truth Score", fontsize=14)
         ax.set_ylabel("Overlap Counts", fontsize=14)
         ax.tick_params(axis="both", labelsize=12)
         ax.grid()
