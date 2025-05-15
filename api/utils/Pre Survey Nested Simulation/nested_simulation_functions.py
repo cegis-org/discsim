@@ -864,9 +864,9 @@ def get_high_scoring_L0s(
 
     # Finalize the scatter plot if required
     if plot_truth_scores:
-        plt.title("Real vs Measured Truth Scores", fontsize=16)
-        plt.xlabel("Real Truth Scores", fontsize=14)
-        plt.ylabel("Measured Truth Scores", fontsize=14)
+        plt.title("Real vs Measured Discrepancy Scores", fontsize=16)
+        plt.xlabel("Real Discrepancy Scores", fontsize=14)
+        plt.ylabel("Measured Discrepancy Scores", fontsize=14)
         plt.grid()
         plt.tight_layout()
         plt.show()
@@ -883,13 +883,13 @@ def get_high_scoring_L0s(
     if plot_truth_scores:
         fig, axes = plt.subplots(1, 2, figsize=(12, 6))
         axes[0].hist([score[1] for score in real_truth_scores], bins=20, color="black", alpha=0.7)
-        axes[0].set_title("Real Truth Scores Distribution", fontsize=16)
-        axes[0].set_xlabel("Truth Score", fontsize=14)
+        axes[0].set_title("Real Discrepancy Scores Distribution", fontsize=16)
+        axes[0].set_xlabel("Discrepancy Score", fontsize=14)
         axes[0].set_ylabel("Frequency", fontsize=14)
         axes[0].tick_params(axis="both", labelsize=12)
         axes[1].hist([score[1] for score in measured_truth_scores], bins=20, color="black", alpha=0.7)
-        axes[1].set_title("Measured Truth Scores Distribution", fontsize=16)
-        axes[1].set_xlabel("Truth Score", fontsize=14)
+        axes[1].set_title("Measured Discrepancy Scores Distribution", fontsize=16)
+        axes[1].set_xlabel("Discrepancy Score", fontsize=14)
         axes[1].set_ylabel("Frequency", fontsize=14)
         axes[1].tick_params(axis="both", labelsize=12)
         plt.tight_layout()
@@ -1045,7 +1045,7 @@ def L1_reliability_nested(L1_collusion_index_list,
     return(n_real_L0s_mean, n_real_L0s_ci, L2_L1_truth_scores, L0_real_truth_scores, all_L2_L1_truth_scores, all_overlap_counts)
 
 def L1_reliability_scenario_wise(scenario_parameter_list, n_L0s_reward, method, n_simulations,
-                   make_plots=True):
+                   make_plots=True, xbuffer=0.1):
     """
     Plot the dependance of L1 confidence guarantee (number of real green zone L0s)
     on the L2-L1 truth score.
@@ -1121,7 +1121,7 @@ def L1_reliability_scenario_wise(scenario_parameter_list, n_L0s_reward, method, 
 
     # Plotting
     if make_plots:
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(6, 5))
         y_lower_errors, y_upper_errors = zip(*n_real_L0s_ci)
         x_lower_errors, x_upper_errors = zip(*L2_L1_truth_scores_ci)
         ax.errorbar(L2_L1_truth_scores, n_real_L0s_mean, 
@@ -1136,7 +1136,7 @@ def L1_reliability_scenario_wise(scenario_parameter_list, n_L0s_reward, method, 
         ax.set_ylabel("Number of Real Green Zone L0s", fontsize=14)
         ax.tick_params(axis="both", labelsize=12)
         ax.set_ylim(0, n_L0s_reward*1.2)
-        ax.set_xlim(min(L2_L1_truth_scores) - 0.1, max(L2_L1_truth_scores) + 0.1)
+        ax.set_xlim(min(L2_L1_truth_scores) - xbuffer, max(L2_L1_truth_scores) + xbuffer)
         ax.grid()
         plt.tight_layout()
         plt.show()
