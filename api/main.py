@@ -75,9 +75,13 @@ async def health():
 
 def detect_delimiter(sample_text: str) -> str:
     """Detect whether comma or semicolon is the most likely delimiter."""
-    comma_count = sample_text.count(',')
-    semicolon_count = sample_text.count(';')
-    return ',' if comma_count >= semicolon_count else ';'
+    try:
+        sniffer = csv.Sniffer()
+        dialect = sniffer.sniff(sample_text)
+        return dialect.delimiter
+    except csv.Error:
+        # Fallback
+        return ',' if sample_text.count(',') >= sample_text.count(';') else ';'
 @app.post("/upload_file")
 async def upload_file(
     file: UploadFile = File(...),
@@ -99,7 +103,7 @@ async def upload_file(
         
         # Decode contents
         text_data = contents.decode(encoding)
-        df_raw = pd.read_csv(io.StringIO(contents.decode(encoding)), header=None)
+        df_raw = pd.read_csv(io.StringIO(text_data), header=0)
 
         # If only one column exists, try splitting it
         if df_raw.shape[1] == 1:
@@ -109,11 +113,15 @@ async def upload_file(
             detected_delim = detect_delimiter(sample)
             logger.warning(f"Detected delimiter: '{detected_delim}'")
             # Split the single column into columns
-            split_df = df_raw[0].str.split(detected_delim, expand=True)
+            # split_df = df_raw[0].str.split(detected_delim, expand=True)
             # Use first row as header -> include explicitly headers
-            split_df.columns = split_df.iloc[0].astype(str)
+            # split_df.columns = split_df.iloc[0].astype(str)
             # Drop the header row from data
-            df = split_df.iloc[1:].reset_index(drop=True)
+            # df = split_df.iloc[1:].reset_index(drop=True)
+            df = pd.read_csv(io.StringIO(text_data), delimiter=detected_delim, header=0)
+
+        else:
+            df = df_raw
 
         # Convert DataFrame back to CSV
         processed_csv = df.to_csv(index=False)

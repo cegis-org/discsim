@@ -194,3 +194,7 @@ div[data-testid="stElementToolbar"] {
   content: "ⓘ"; /* Unicode character for a right arrow */
   font-size: 12px;
 }
+
+a[data-testid="stLogoLink"]:hover {
+  opacity: 1;
+}

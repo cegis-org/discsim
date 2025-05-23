@@ -14,7 +14,29 @@ API_BASE_URL = os.getenv("API_BASE_URL")
 
 THIRD_PARTY_SAMPLING_ENDPOINT = f"{API_BASE_URL}/third-party-sampling"
 
+@st.cache_data
+def customCss():
+    customcss = """
+        <style>
+        button[data-testid="stBaseButton-secondaryFormSubmit"]{
+            background-color:#3b8e51;
+            color:#fff;
+            border:none;
+        }
+        button[data-testid="stBaseButton-secondaryFormSubmit"]:hover,
+        button[data-testid="stBaseButton-secondaryFormSubmit"]:active,
+        button[data-testid="stBaseButton-secondaryFormSubmit"]:focus,
+        button[data-testid="stBaseButton-secondaryFormSubmit"]:focus:not(:active)
+        {
+            color:#fff!important;
+            border:none;
+        }
+        </style>
+    """
+    st.markdown(customcss, unsafe_allow_html=True)
+
 def third_party_sampling_strategy():
+    customCss()
     st.markdown("<h2 style='text-align: center;'>Third-Party Sampling Strategy Predictor", unsafe_allow_html=True)
     with st.form("third_party_sampling_strategy"):
         col1, col2, col3 = st.columns(3)

@@ -15,7 +15,7 @@ def pseudo_code_analysis():
     # File selection
     file_option = st.sidebar.radio(
         "Choose an option:",
-        ("Upload a new file", "Select a previously uploaded file"),
+        ("Upload a file", "Select a previously uploaded file"),
     )
     uploaded_file = handle_file_upload(
         file_option, category="pseudo_code_analysis"
@@ -34,6 +34,11 @@ def pseudo_code_analysis():
             st.markdown("<h2 style='text-align:center;color:#136a9a;font-weight:800;padding:0;margin:0'>Insights from the Nested Supervision intervention", unsafe_allow_html=True)
             st.markdown("<h4 style='text-align:center;color:#34a853;margin-bottom:20px;font-weight:300'>District Collector / District Welfare Officer view", unsafe_allow_html=True)
             status,message,data = response.json()
+
+            if status == 0:
+                st.error(message)
+                st.stop()
+
             if 'summary' in data:
                 a,c,d,e = st.columns(4)
                 a.metric("Children remeasured", format(data['summary']['totalSampleSize'],',d'), border=True)
@@ -824,6 +829,214 @@ def pseudo_code_analysis():
 
             with awc:
                 st.markdown("<h4 style='text-align:center'>AWC-level insights on Nested Supervision intervention", unsafe_allow_html=True)
+
+                col1,col2 = st.columns(2)
+                with col1:
+                    if 'sameHeight' in data['awcLevelInsights']:
+                        container = st.container(border=True)
+                        awcSameHeight = pd.DataFrame(data['awcLevelInsights']['sameHeight'])
+                        container.markdown("<h6 style='text-align:center;padding-bottom:0'>Remeasurements with Exact Same AWT and Supervisor Height Measurements", unsafe_allow_html=True)
+                        container.markdown("<p style='text-align:center;color:grey;font-size:12px'>Top 10 AWC", unsafe_allow_html=True)
+                        top_12_awcSameHeight = awcSameHeight.nlargest(10, 'Exact_Same_Height_%')
+                        top_12_awcSameHeight = top_12_awcSameHeight.sort_values(by='Exact_Same_Height_%', ascending=True)
+                        fig_top_12_awcSameHeight = px.bar(
+                            top_12_awcSameHeight,
+                            x='Exact_Same_Height_%', 
+                            y='AWC_Name',
+                            orientation='h',
+                            text=top_12_awcSameHeight["Exact_Same_Height_%"].astype(str) + " %",
+                        )
+                        fig_top_12_awcSameHeight.update_layout(
+                            barcornerradius=5,
+                            showlegend=False,
+                            height=300,
+                            margin=dict(t=0, b=0,l=0,r=0),
+                            xaxis=dict(range=[0,100],title=None,showgrid=False,showticklabels=False),
+                            yaxis=dict(title=None,showgrid=False,showticklabels=True)
+                        )
+                        container.plotly_chart(fig_top_12_awcSameHeight)
+                        with container.expander("Show Data"):
+                            awcSameHeight.index.name = 'SN'
+                            awcSameHeight.index = awcSameHeight.index + 1
+                            st.dataframe(awcSameHeight,hide_index=False,use_container_width=True)
+                with col2:
+                    if 'sameWeight' in data['awcLevelInsights']:
+                        container = st.container(border=True)
+                        awcSameWeight = pd.DataFrame(data['awcLevelInsights']['sameWeight'])
+                        container.markdown("<h6 style='text-align:center;padding-bottom:0'>Remeasurements with Exact Same AWT and Supervisor Weight Measurements", unsafe_allow_html=True)
+                        container.markdown("<p style='text-align:center;color:grey;font-size:12px'>Top 10 AWC", unsafe_allow_html=True)
+                        top_12_awcSameWeight = awcSameWeight.nlargest(10, 'Exact_Same_Weight_%')
+                        top_12_awcSameWeight = top_12_awcSameWeight.sort_values(by='Exact_Same_Weight_%', ascending=True)
+                        fig_top_12_awcSameWeight = px.bar(
+                            top_12_awcSameWeight,
+                            x='Exact_Same_Weight_%', 
+                            y='AWC_Name',
+                            orientation='h',
+                            text=top_12_awcSameWeight["Exact_Same_Weight_%"].astype(str) + " %",
+                        )
+                        fig_top_12_awcSameWeight.update_layout(
+                            barcornerradius=5,
+                            showlegend=False,
+                            height=300,
+                            margin=dict(t=0, b=0,l=0,r=0),
+                            xaxis=dict(range=[0,100],title=None,showgrid=False,showticklabels=False),
+                            yaxis=dict(title=None,showgrid=False,showticklabels=True)
+                        )
+                        container.plotly_chart(fig_top_12_awcSameWeight)
+                        with container.expander("Show Data"):
+                            awcSameWeight.index.name = 'SN'
+                            awcSameWeight.index = awcSameWeight.index + 1
+                            st.dataframe(awcSameWeight,hide_index=False,use_container_width=True)
+
+                st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>WASTING [WEIGHT-FOR-HEIGHT]", unsafe_allow_html=True)
+
+                if 'wastingLevels' in data['awcLevelInsights']:
+                    container = st.container(border=True)
+                    awcWastingLevels = pd.DataFrame(data['awcLevelInsights']['wastingLevels'])
+                    container.markdown("<h6 style='text-align:center;padding:0'>Difference in Wasting levels between AWTs and Supervisors", unsafe_allow_html=True)
+                    container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:5px'>10 awc with the highest difference between AWT and Supervisor Wasting %", unsafe_allow_html=True)
+                    categories = ['AWT_SAM_%', 'AWT_Wasting_%','Supervisor_SAM_%', 'Supervisor_Wasting_%']
+                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    top_10_sector_analysis = awcWastingLevels.nlargest(10, 'Sup-AWT_Difference_%')
+                    wasting_table_melted = top_10_sector_analysis.melt(id_vars=['AWC_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
+                    fig_wasting_levels = px.bar(
+                        wasting_table_melted,
+                        x='AWC_Name',
+                        y='Percentage',
+                        color='Category',
+                        text=wasting_table_melted['Percentage'].astype(str) + '%',
+                        barmode='group',
+                        color_discrete_sequence=colors,
+                    )
+                    fig_wasting_levels.update_layout(
+                        barcornerradius=2,
+                        margin=dict(t=0, b=0),
+                        xaxis=dict(title=None,showgrid=False,showticklabels=True),
+                        yaxis=dict(title=None,showgrid=False,showticklabels=False),
+                        legend=dict(title=None,orientation='h'),
+                        bargap=0.2
+                    )
+                    container.plotly_chart(fig_wasting_levels)
+                    with container.expander("Show Data"):
+                        awcWastingLevels.index.name = 'SN'
+                        awcWastingLevels.index = awcWastingLevels.index + 1
+                        st.dataframe(awcWastingLevels,hide_index=False,use_container_width=True)
+
+                if 'wastingClassification' in data['awcLevelInsights']:
+                    container = st.container(border=True)
+                    awcWastingClassification = pd.DataFrame(data['awcLevelInsights']['wastingClassification'])
+                    container.markdown("<h6 style='text-align:center;padding:0'>Difference between AWT and Supervisor in Wasting Classification", unsafe_allow_html=True)
+                    container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:5px'>10 awc with the highest misclassification", unsafe_allow_html=True)
+                    categories = ['AWT_Normal_Sup_SAM_%', 'AWT_Normal_Sup_MAM_%', 'AWT_MAM_Sup_SAM_%', 'Other_Misclassifications_%', 'Same_Classifications_%']
+                    colors = ['darkred', 'red', 'lightcoral', 'gold', 'green']
+                    #top_10_sector_analysis = awcWastingClassification.sort_values(by='Same_Classifications_%',ascending=True)
+                    top_10_awc_analysis = awcWastingClassification.nsmallest(10, 'Same_Classifications_%')
+                    sector_analysis_melted = top_10_awc_analysis.melt(id_vars=['AWC_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
+                    sector_analysis_melted['Percentage'] = sector_analysis_melted.groupby('AWC_Name')['Percentage'].transform(
+                        lambda x: x / x.sum() * 100
+                    )
+                    sector_analysis_melted['Percentage'] = sector_analysis_melted['Percentage'].round(0)
+                    sector_analysis_melted['Percentage_label'] = sector_analysis_melted['Percentage'].apply(
+                        lambda x: f"{x:.1f}%"  # Ensures 1 decimal place even for values < 1
+                    )
+                    fig_awcWastingClassification = px.bar(
+                        sector_analysis_melted,
+                        x='Percentage',
+                        y='AWC_Name',
+                        color='Category',
+                        text=sector_analysis_melted['Percentage'].astype(str) + '%',
+                        color_discrete_sequence=colors,
+                    )
+                    fig_awcWastingClassification.update_layout(
+                        barcornerradius=5,
+                        margin=dict(t=0, b=0),
+                        height=400,
+                        xaxis=dict(range=[0,100],title=None,showgrid=False,showticklabels=False),
+                        yaxis=dict(title=None,showgrid=False,showticklabels=True),
+                        legend=dict(title=None,orientation='h'),
+                        bargap=0.2
+                    )
+                    container.plotly_chart(fig_awcWastingClassification)
+                    with container.expander("Show Data"):
+                        awcWastingClassification.index.name = 'SN'
+                        awcWastingClassification.index = awcWastingClassification.index + 1
+                        st.dataframe(awcWastingClassification,hide_index=False,use_container_width=True)
+
+                st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>UNDERWEIGHT [WEIGHT-FOR-AGE]", unsafe_allow_html=True)
+
+                if 'underweightLevels' in data['awcLevelInsights']:
+                    container = st.container(border=True)
+                    awcUnderweightLevels = pd.DataFrame(data['awcLevelInsights']['underweightLevels'])
+                    container.markdown("<h6 style='text-align:center;padding:0px'>Difference in Underweight levels between AWTs and Supervisor", unsafe_allow_html=True)
+                    container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:5px'>10 awc with the highest difference between AWT and Supervisor Underweight %'", unsafe_allow_html=True)
+                    categories = ['AWT_SUW_%', 'Sup_SUW_%', 'AWT_Underweight_%', 'Sup_Underweight_%']
+                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    top_10_awc_analysis = awcUnderweightLevels.nlargest(10, 'Sup-AWT_Difference_%')
+                    sector_analysis_melted = top_10_awc_analysis.melt(id_vars=['AWC_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
+                    fig_uw_levels = px.bar(
+                        sector_analysis_melted,
+                        x='AWC_Name',
+                        y='Percentage',
+                        color='Category',
+                        text=sector_analysis_melted['Percentage'].astype(str) + '%',
+                        barmode='group',
+                        color_discrete_sequence=colors,
+                    )
+                    fig_uw_levels.update_layout(
+                        barcornerradius=2,
+                        margin=dict(t=0, b=0),
+                        xaxis=dict(title=None,showgrid=False,showticklabels=True),
+                        yaxis=dict(title=None,showgrid=False,showticklabels=False),
+                        legend=dict(title=None,orientation='h'),
+                        bargap=0.2
+                    )
+                    container.plotly_chart(fig_uw_levels)
+                    with container.expander("Show Data"):
+                        awcUnderweightLevels.index.name = 'SN'
+                        awcUnderweightLevels.index = awcUnderweightLevels.index + 1
+                        st.dataframe(awcUnderweightLevels,hide_index=False,use_container_width=True)
+                            
+                if 'underweightClassification' in data['awcLevelInsights']:
+                    container = st.container(border=True)
+                    awcUnderweightClassification = pd.DataFrame(data['awcLevelInsights']['underweightClassification'])
+                    container.markdown("<h6 style='text-align:center;padding:0'>Difference between AWT and Supervisor in Underweight Classification", unsafe_allow_html=True)
+                    container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:5px'>10 awc with the highest misclassification", unsafe_allow_html=True)
+                    categories = ['AWT_Normal_Sup_SUW_%', 'AWT_Normal_Sup_MUW_%', 'Other_Misclassifications_%', 'Same_Classifications_%']
+                    colors = ['darkred', 'red', 'gold', 'green']
+                    top_10_awc_analysis = awcUnderweightClassification.nsmallest(10, 'Same_Classifications_%')
+                    project_analysis_melted = top_10_awc_analysis.melt(id_vars=['AWC_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
+                    #top_10_sector_analysis = sectorWastingClassification.sort_values(by='Same_Classifications_%',ascending=True)
+                    project_analysis_melted['Percentage'] = project_analysis_melted.groupby('AWC_Name')['Percentage'].transform(
+                        lambda x: x / x.sum() * 100
+                    )
+                    project_analysis_melted['Percentage'] = project_analysis_melted['Percentage'].round(0)
+                    project_analysis_melted['Percentage_label'] = project_analysis_melted['Percentage'].apply(
+                        lambda x: f"{x:.1f}%"  # Ensures 1 decimal place even for values < 1
+                    )
+                    fig_awcUnderweightClassification = px.bar(
+                        project_analysis_melted,
+                        x='Percentage',
+                        y='AWC_Name',
+                        color='Category',
+                        orientation='h',
+                        text=project_analysis_melted['Percentage'].astype(str) + '%',
+                        color_discrete_sequence=colors,
+                    )
+                    fig_awcUnderweightClassification.update_layout(
+                        barcornerradius=5,
+                        margin=dict(t=0, b=0),
+                        height=400,
+                        xaxis=dict(range=[0,100],title=None,showgrid=False,showticklabels=True),
+                        yaxis=dict(title=None,showgrid=False,showticklabels=True),
+                        legend=dict(title=None,orientation='h'),
+                        bargap=0.2
+                    )
+                    container.plotly_chart(fig_awcUnderweightClassification)
+                    with container.expander("Show Data"):
+                        awcUnderweightClassification.index.name = 'SN'
+                        awcUnderweightClassification.index = awcUnderweightClassification.index + 1
+                        st.dataframe(awcUnderweightClassification,hide_index=False,use_container_width=True)
+
                 if 'discrepancy' in data['awcLevelInsights']:
                     container = st.container(border=True)
                     container.markdown("<h6 style='text-align:center;padding-bottom:0'>Discrepancy Zoning Based on Percentile", unsafe_allow_html=True)
@@ -871,10 +1084,12 @@ def pseudo_code_analysis():
 
 if __name__ == "__main__":
     selectedNav = setheader("Intervention Analytics")
+    if selectedNav == "Home":
+            st.switch_page("Home.py")
     if selectedNav == "Intervention Design":
-          st.switch_page("pages/1_Intervention_Design.py")
+            st.switch_page("pages/1_Intervention_Design.py")
     if selectedNav == "Admin Data Diagnostic":
-          st.switch_page("pages/2_Admin_Data_Quality_Checklist.py")
+            st.switch_page("pages/2_Admin_Data_Quality_Checklist.py")
     pseudo_code_analysis()
 
     setFooter()

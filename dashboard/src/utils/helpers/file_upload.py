@@ -49,27 +49,31 @@ def handle_file_upload(file_option, category):
             st.warning(f"No files have been uploaded yet in {category}.")
             return None
         
+        default_option = "Select a file"
         # Format file names with upload datetime
-        file_options = [
+        file_options = [default_option] + [
             f"{file['filename']}: {(datetime.fromisoformat(file['upload_datetime']) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d')}"
             for file in files
         ]
         selected_option = st.sidebar.selectbox(f"Select a previously uploaded file ({len(file_options)} files)", file_options)
 
-        if selected_option:
-            selected_filename = selected_option.split(": ")[0]
-            # Find the selected file's ID
-            try:
-                file_id = next(
-                    file["id"]
-                    for file in files
-                    if file["filename"] == selected_filename
-                )
-                st.session_state.uploaded_file_id = file_id
-                uploaded_file = fetch_file_from_api(file_id)
-                st.session_state.uploaded_file = uploaded_file
-            except StopIteration:
-                st.error(f"No file found with the name '{selected_filename}' in {category}. Please try again.")
-                return None
+        if selected_option == default_option:
+            return None
+        else: 
+            if selected_option:
+                selected_filename = selected_option.split(": ")[0]
+                # Find the selected file's ID
+                try:
+                    file_id = next(
+                        file["id"]
+                        for file in files
+                        if file["filename"] == selected_filename
+                    )
+                    st.session_state.uploaded_file_id = file_id
+                    uploaded_file = fetch_file_from_api(file_id)
+                    st.session_state.uploaded_file = uploaded_file
+                except StopIteration:
+                    st.error(f"No file found with the name '{selected_filename}' in {category}. Please try again.")
+                    return None
 
     return uploaded_file

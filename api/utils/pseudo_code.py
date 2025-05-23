@@ -30,7 +30,7 @@ def anganwadi_center_data_anaylsis(file: pd.DataFrame):
     
     for col in required_columns:
         if col not in df.columns:
-            return (0, f"Error: Required column '{col}' is missing from the data.")
+            return (0, f"Error: Required column '{col}' is missing from the data.",[])
 
     # Mismatch Classification Conditions
     df['AWT_Normal_Sup_SAM'] = ((df['Sup_Status_Wasting'] == "SAM") & (df['Status_Wasting'] == "Normal")) * 1
@@ -397,6 +397,77 @@ def anganwadi_center_data_anaylsis(file: pd.DataFrame):
             sector_level_disc['Percentile_Rank (%)'] <= 30 #red threshold
         ], ['Green', 'Red'],default='Yellow'),'')
     
+    # AWC Level Analysis
+    # Equal Same Height
+    awc_analysis_eq_height = df.groupby('AWC_Name').agg(
+        Total_Remeasurements=('Height', 'count'),
+        Exact_Same_Height=('AWT_height_eq_Sup_height', 'sum')
+    ).reset_index()
+    awc_analysis_eq_height['Exact_Same_Height_%'] = np.where(awc_analysis_eq_height['Total_Remeasurements'] > 15,round((awc_analysis_eq_height['Exact_Same_Height'] / awc_analysis_eq_height['Total_Remeasurements']) * 100, 1),0)
+
+    # Equal Same Weight
+    awc_analysis_eq_weight = df.groupby('AWC_Name').agg(
+        Total_Remeasurements=('Weight', 'count'),
+        Exact_Same_Weight=('AWT_weight_eq_Sup_weight', 'sum')
+    ).reset_index()
+    awc_analysis_eq_weight['Exact_Same_Weight_%'] = np.where(awc_analysis_eq_weight['Total_Remeasurements'] > 15,round((awc_analysis_eq_weight['Exact_Same_Weight'] / awc_analysis_eq_weight['Total_Remeasurements']) * 100, 1),0) 
+    #15 is case-threshold for user input (can be changed at each level)
+
+    #Wasting Levels
+    awc_analysis_wasting_levels = df.groupby('AWC_Name').agg(
+        Total_Remeasurements=('AWC_Name', 'count'),
+        AWT_SAM=('Status_Wasting', lambda x: (x == 'SAM').sum()),
+        AWT_Wasting=('AWT_Wasting', 'sum'),
+        Supervisor_SAM=('Sup_Status_Wasting', lambda x: (x == 'SAM').sum()),
+        Supervisor_Wasting=('Supervisor_Wasting', 'sum')
+    ).reset_index()
+    awc_analysis_wasting_levels['AWT_SAM_%'] = round((awc_analysis_wasting_levels['AWT_SAM'] / awc_analysis_wasting_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_levels['AWT_Wasting_%'] = round((awc_analysis_wasting_levels['AWT_Wasting'] / awc_analysis_wasting_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_levels['Supervisor_SAM_%'] = round((awc_analysis_wasting_levels['Supervisor_SAM'] / awc_analysis_wasting_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_levels['Supervisor_Wasting_%'] = round((awc_analysis_wasting_levels['Supervisor_Wasting'] / awc_analysis_wasting_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_levels['Sup-AWT_Difference_%'] = round(((awc_analysis_wasting_levels['Supervisor_Wasting'] - awc_analysis_wasting_levels['AWT_Wasting']) / awc_analysis_wasting_levels['Total_Remeasurements']) * 100, 0)
+
+    # Wasting Classification
+    awc_analysis_wasting_classification = df.groupby('AWC_Name').agg(
+        Total_Remeasurements=('AWC_Name', 'count'),
+        AWT_Normal_Sup_SAM=('AWT_Normal_Sup_SAM', 'sum'),
+        AWT_Normal_Sup_MAM=('AWT_Normal_Sup_MAM', 'sum'),
+        AWT_MAM_Sup_SAM=('AWT_MAM_Sup_SAM', 'sum'),
+        Other_Misclassifications=('AWT_Sup_Other_Misclassifications_Wasting', 'sum'),
+        Same_Classifications=('AWT_Sup_Same_Wasting', 'sum'),
+    ).reset_index()
+    awc_analysis_wasting_classification['AWT_Normal_Sup_SAM_%'] = round((awc_analysis_wasting_classification['AWT_Normal_Sup_SAM'] / awc_analysis_wasting_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_classification['AWT_Normal_Sup_MAM_%'] = round((awc_analysis_wasting_classification['AWT_Normal_Sup_MAM'] / awc_analysis_wasting_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_classification['AWT_MAM_Sup_SAM_%'] = round((awc_analysis_wasting_classification['AWT_MAM_Sup_SAM'] / awc_analysis_wasting_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_classification['Other_Misclassifications_%'] = round((awc_analysis_wasting_classification['Other_Misclassifications'] / awc_analysis_wasting_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_wasting_classification['Same_Classifications_%'] = round((awc_analysis_wasting_classification['Same_Classifications'] / awc_analysis_wasting_classification['Total_Remeasurements']) * 100, 0)
+
+    # Underweight Levels
+    awc_analysis_uw_levels = df.groupby('AWC_Name').agg(
+        Total_Remeasurements=('AWC_Name', 'count'),
+        AWT_SUW=('Status_UW', lambda x: (x == 'SUW').sum()),
+        Sup_SUW=('Sup_Status_UW', lambda x: (x == 'SUW').sum()),
+        AWT_Underweight=('AWT_Underweight', 'sum'),
+        Sup_Underweight=('Supervisor_Underweight', 'sum')
+    ).reset_index()
+    awc_analysis_uw_levels['AWT_SUW_%'] = round((awc_analysis_uw_levels['AWT_SUW'] / awc_analysis_uw_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_uw_levels['Sup_SUW_%'] = round((awc_analysis_uw_levels['Sup_SUW'] / awc_analysis_uw_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_uw_levels['AWT_Underweight_%'] = round((awc_analysis_uw_levels['AWT_Underweight'] / awc_analysis_uw_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_uw_levels['Sup_Underweight_%'] = round((awc_analysis_uw_levels['Sup_Underweight'] / awc_analysis_uw_levels['Total_Remeasurements']) * 100, 0)
+    awc_analysis_uw_levels['Sup-AWT_Difference_%'] = round(((awc_analysis_uw_levels['Sup_Underweight'] - awc_analysis_uw_levels['AWT_Underweight']) / awc_analysis_uw_levels['Total_Remeasurements']) * 100, 0)
+
+    # Underweight Classification
+    awc_analysis_underweight_classification = df.groupby('AWC_Name').agg(
+        Total_Remeasurements=('AWC_Name', 'count'),
+        AWT_Normal_Sup_SUW=('AWT_Normal_Sup_SUW', 'sum'),
+        AWT_Normal_Sup_MUW=('AWT_Normal_Sup_MUW', 'sum'),
+        Other_Misclassifications=('AWT_Sup_Other_Misclassifications_Underweight', 'sum'),
+        Same_Classifications=('AWT_Sup_Same_Underweight', 'sum'),
+    ).reset_index()
+    awc_analysis_underweight_classification['AWT_Normal_Sup_SUW_%'] = round((awc_analysis_underweight_classification['AWT_Normal_Sup_SUW'] / awc_analysis_underweight_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_underweight_classification['AWT_Normal_Sup_MUW_%'] = round((awc_analysis_underweight_classification['AWT_Normal_Sup_MUW'] / awc_analysis_underweight_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_underweight_classification['Other_Misclassifications_%'] = round((awc_analysis_underweight_classification['Other_Misclassifications'] / awc_analysis_underweight_classification['Total_Remeasurements']) * 100, 0)
+    awc_analysis_underweight_classification['Same_Classifications_%'] = round((awc_analysis_underweight_classification['Same_Classifications'] / awc_analysis_underweight_classification['Total_Remeasurements']) * 100, 0)
 
     #AWC Level Discrepancy
     awc_level_disc = df.groupby('AWC_Name').agg(
@@ -460,6 +531,12 @@ def anganwadi_center_data_anaylsis(file: pd.DataFrame):
             "discrepancy":sector_level_disc.to_dict(orient="records"),
         },
         "awcLevelInsights":{
+            "sameHeight":awc_analysis_eq_height.to_dict(orient="records"),
+            "sameWeight":awc_analysis_eq_weight.to_dict(orient="records"),
+            "wastingLevels":awc_analysis_wasting_levels.to_dict(orient="records"),
+            "wastingClassification":awc_analysis_wasting_classification.to_dict(orient="records"),
+            "underweightLevels":awc_analysis_uw_levels.to_dict(orient="records"),
+            "underweightClassification":awc_analysis_underweight_classification.to_dict(orient="records"),
             "discrepancy":awc_level_disc.to_dict(orient="records"),
         }
     }

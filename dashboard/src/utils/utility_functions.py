@@ -20,8 +20,9 @@ im = Image.open(logo_path)
 logo_page_path = os.path.join(root_dir, "logo_white.png")
 im_page = Image.open(logo_page_path)
 
+PUBLIC_URL = os.getenv("PUBLIC_URL")
 def set_page_config(sideBar = 'expanded'):
-    st.logo(im_page)
+    st.logo(im_page,link=PUBLIC_URL)
 
     st.set_page_config(
         page_title="VALIData | CEGIS",
@@ -80,7 +81,7 @@ def setheader(SelectedNav = None):
         "fix_shadow":False,
         "hide_nav":False
     }
-    return st_navbar(["Intervention Design", "Admin Data Diagnostic", "Intervention Analytics"],selected=SelectedNav,styles=navStyles,options=navOptions) # type: ignore
+    return st_navbar(["Home", "Intervention Design", "Admin Data Diagnostic", "Intervention Analytics"],selected=SelectedNav,styles=navStyles,options=navOptions) # type: ignore
 
 def setFooter():
          # Footer using markdown with custom HTML

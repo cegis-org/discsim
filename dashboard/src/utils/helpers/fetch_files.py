@@ -11,6 +11,7 @@ API_BASE_URL = os.getenv("API_BASE_URL")
 GET_ALL_FILES_ENDPOINT = f"{API_BASE_URL}/list_files"
 GET_FILE_ENDPOINT = f"{API_BASE_URL}/get_file"
 
+# @st.cache_data(ttl=300)
 def fetch_files_from_api(category):
     params = {"category": category}
     response = requests.get(f"{GET_ALL_FILES_ENDPOINT}", params=params)

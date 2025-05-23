@@ -6,13 +6,13 @@ set_page_config("collapsed")
 
 
 if __name__ == "__main__":
-      selectedNav = setheader()
+      selectedNav = setheader("Home")
       if selectedNav == "Intervention Design":
             st.switch_page("pages/1_Intervention_Design.py")
       if selectedNav == "Admin Data Diagnostic":
             st.switch_page("pages/2_Admin_Data_Quality_Checklist.py")
       if selectedNav == "Intervention Analytics":
-            st.switch_page("pages/3_Nutrition_Analytics.py")
+            st.switch_page("pages/3_Intervention_Analytics.py")
       setFooter()
 
       with st.container():

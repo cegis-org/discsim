@@ -61,10 +61,12 @@ if st.session_state.get('reset_upload', False):
 
 if __name__ == "__main__":
     selectedNav = setheader("Admin Data Diagnostic")
+    if selectedNav == "Home":
+            st.switch_page("Home.py")
     if selectedNav == "Intervention Design":
-          st.switch_page("pages/1_Intervention_Design.py")
+            st.switch_page("pages/1_Intervention_Design.py")
     if selectedNav == "Intervention Analytics":
-          st.switch_page("pages/3_Intervention_Analytics.py")
+            st.switch_page("pages/3_Intervention_Analytics.py")
     admin_data_quality_check()
 
     setFooter()
