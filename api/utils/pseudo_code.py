@@ -784,13 +784,11 @@ def anganwadi_center_data_anaylsis(file: pd.DataFrame):
             else:
                 awc_level_disc["Percentile_Rank (%)"] = 0
 
-            awc_level_disc['Zone'] = np.where(
-            awc_level_disc['Discrepancy Rate (%)'] > 0,
-            np.select(
+            awc_level_disc['Zone'] = np.select(
                 [
                     awc_level_disc['Percentile_Rank (%)'] >= 75, #green threshold
                     awc_level_disc['Percentile_Rank (%)'] <= 25 #red threshold
-                ], ['Green', 'Red'],default='Yellow'),'')
+                ], ['Green', 'Red'],default='Yellow')
         except Exception as e:
             logger.error(f"Error during AWC Level Analysis: {e}")
             return (0, f"Error during AWC Level Analysis", [])

@@ -97,6 +97,9 @@ def zero_entries_analysis(uploaded_file, df):
                 if response.status_code == 200:
                     # dataframe_start = time.perf_counter()
                     result = response.json()
+
+                    st.success(f"Zero entries analysed for column: '{column_to_analyze}'")
+                    
                     if result["grouped"]:
                         a,b = st.columns(2)
                         a.metric(f"Total number of rows analysed",format(result['total_rows'],',d'),border=True)

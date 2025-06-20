@@ -350,9 +350,10 @@ def pseudo_code_analysis():
                         )
                         container.plotly_chart(fig_top_12_projectSameHeight)
                         with container.expander("Show in tabular form"):
-                            projectSameHeight.index.name = 'SN'
-                            projectSameHeight.index = projectSameHeight.index + 1
-                            st.dataframe(projectSameHeight,hide_index=False,use_container_width=True)
+                            projectSameHeight = projectSameHeight.sort_values(by='Exact_Same_Height_%', ascending=False)
+                            projectSameHeight_display = projectSameHeight.copy()
+                            projectSameHeight_display.insert(0, 'SN', range(1, len(projectSameHeight_display) + 1))
+                            st.dataframe(projectSameHeight_display,hide_index=True,use_container_width=True)
                     
                 with col2:
                     if 'sameWeight' in data['projectLevelInsights']:
@@ -378,9 +379,10 @@ def pseudo_code_analysis():
                         )
                         container.plotly_chart(fig_top_12_projectSameWeight)
                         with container.expander("Show in tabular form"):
-                            projectSameWeight.index.name = 'SN'
-                            projectSameWeight.index = projectSameWeight.index + 1
-                            st.dataframe(projectSameWeight,hide_index=False,use_container_width=True)
+                            projectSameWeight = projectSameWeight.sort_values(by='Exact_Same_Weight_%', ascending=False)
+                            projectSameWeight_display = projectSameWeight.copy()
+                            projectSameWeight_display.insert(0, 'SN', range(1, len(projectSameWeight_display) + 1))
+                            st.dataframe(projectSameWeight_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>WASTING [WEIGHT-FOR-HEIGHT]", unsafe_allow_html=True)
 
@@ -389,8 +391,8 @@ def pseudo_code_analysis():
                     projectWastingLevels = pd.DataFrame(data['projectLevelInsights']['wastingLevels'])
                     container.markdown("<h6 style='text-align:center;padding:0'>Difference in Wasting levels between AWTs and Supervisors", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:12px;margin:1px;padding-bottom:10px'>Note: AWT SAM and AWT Wasting figures are for the re-measurement<br> subset only and not for the entire universe of AWC children", unsafe_allow_html=True)
-                    categories = ['AWT_SAM_%', 'AWT_Wasting_%','Supervisor_SAM_%', 'Supervisor_Wasting_%']
-                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    categories = ['AWT_Wasting_%', 'Supervisor_Wasting_%']
+                    colors = ['#0b5394', '#cc0000']
                     wasting_table_melted = projectWastingLevels.melt(id_vars=['Proj_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
                     fig_wasting_levels = px.bar(
                         wasting_table_melted,
@@ -419,9 +421,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_wasting_levels)
                     with container.expander("Show Data"):
-                        projectWastingLevels.index.name = 'SN'
-                        projectWastingLevels.index = projectWastingLevels.index + 1
-                        st.dataframe(projectWastingLevels,hide_index=False,use_container_width=True)
+                        projectWastingLevels = projectWastingLevels.sort_values(by='Sup-AWT_Difference_%', ascending=False)
+                        projectWastingLevels_display = projectWastingLevels.copy()
+                        projectWastingLevels_display.insert(0, 'SN', range(1, len(projectWastingLevels_display) + 1))
+                        st.dataframe(projectWastingLevels_display,hide_index=True,use_container_width=True)
 
 
                 if 'wastingClassification' in data['projectLevelInsights']:
@@ -458,9 +461,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_projectWastingClassification)
                     with container.expander("Show Data"):
-                        projectWastingClassification.index.name = 'SN'
-                        projectWastingClassification.index = projectWastingClassification.index + 1
-                        st.dataframe(projectWastingClassification,hide_index=False,use_container_width=True)
+                        projectWastingClassification = projectWastingClassification.sort_values(by='Same_Classifications_%', ascending=False)
+                        projectWastingClassification_display = projectWastingClassification.copy()
+                        projectWastingClassification_display.insert(0, 'SN', range(1, len(projectWastingClassification_display) + 1))
+                        st.dataframe(projectWastingClassification_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>UNDERWEIGHT [WEIGHT-FOR-AGE]", unsafe_allow_html=True)
 
@@ -469,8 +473,8 @@ def pseudo_code_analysis():
                     projectUnderweightLevels = pd.DataFrame(data['projectLevelInsights']['underweightLevels'])
                     container.markdown("<h6 style='text-align:center;padding:0'>Difference in Underweight levels between AWTs and Supervisor", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:12px;margin:1px;padding-bottom:10px'>Note: AWT SUW and AWT Underweight figures are for the re-measurement<br> subset only and not for the entire universe of AWC children", unsafe_allow_html=True)
-                    categories = ['AWT_SUW_%', 'Sup_SUW_%', 'AWT_Underweight_%', 'Sup_Underweight_%']
-                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    categories = [ 'AWT_Underweight_%', 'Sup_Underweight_%']
+                    colors = [ '#0b5394', '#cc0000']
                     project_analysis_melted = projectUnderweightLevels.melt(id_vars=['Proj_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
                     fig_uw_levels = px.bar(
                         project_analysis_melted,
@@ -499,9 +503,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_uw_levels)
                     with container.expander("Show Data"):
-                        projectUnderweightLevels.index.name = 'SN'
-                        projectUnderweightLevels.index = projectUnderweightLevels.index + 1
-                        st.dataframe(projectUnderweightLevels,hide_index=False,use_container_width=True)
+                        projectUnderweightLevels = projectUnderweightLevels.sort_values(by='Sup-AWT_Difference_%', ascending=False)
+                        projectUnderweightLevels_display = projectUnderweightLevels.copy()
+                        projectUnderweightLevels_display.insert(0, 'SN', range(1, len(projectUnderweightLevels_display) + 1))
+                        st.dataframe(projectUnderweightLevels_display,hide_index=True,use_container_width=True)
                             
                 if 'underweightClassification' in data['projectLevelInsights']:
                     container = st.container(border=True)
@@ -538,9 +543,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_projectUnderweightClassification)
                     with container.expander("Show Data"):
-                        projectUnderweightClassification.index.name = 'SN'
-                        projectUnderweightClassification.index = projectUnderweightClassification.index + 1
-                        st.dataframe(projectUnderweightClassification,hide_index=False,use_container_width=True)
+                        projectUnderweightClassification = projectUnderweightClassification.sort_values(by='Same_Classifications_%', ascending=False)
+                        projectUnderweightClassification_display = projectUnderweightClassification.copy()
+                        projectUnderweightClassification_display.insert(0, 'SN', range(1, len(projectUnderweightClassification_display) + 1))
+                        st.dataframe(projectUnderweightClassification_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>STUNTING [HEIGHT-FOR-AGE]", unsafe_allow_html=True)
 
@@ -549,8 +555,8 @@ def pseudo_code_analysis():
                     stuntingLevels = pd.DataFrame(data['projectLevelInsights']['stuntingLevels'])
                     container.markdown("<h6 style='text-align:center;padding:0'>Difference in Stunting Level between AWTs and Supervisors", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:12px;margin:1px'>Note: AWT SS and AWT Stunting figures are for the re-measurement<br> subset only and not for the entire universe of AWC children", unsafe_allow_html=True)
-                    categories = ['AWT_SS_%', 'Sup_SS_%', 'AWT_Stunting_%', 'Sup_Stunting_%']
-                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    categories = [ 'AWT_Stunting_%', 'Sup_Stunting_%']
+                    colors = [ '#0b5394', '#cc0000']
                     stuntingLevels_melted = stuntingLevels.melt(id_vars=['Proj_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
                     fig_ss_levels = px.bar(
                         stuntingLevels_melted,
@@ -579,9 +585,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_ss_levels)
                     with container.expander("Show Data"):
-                        stuntingLevels.index.name = 'SN'
-                        stuntingLevels.index = stuntingLevels.index + 1
-                        st.dataframe(stuntingLevels,hide_index=False,use_container_width=True)
+                        stuntingLevels = stuntingLevels.sort_values(by='Sup_Stunting_%', ascending=False)
+                        stuntingLevels_display = stuntingLevels.copy()
+                        stuntingLevels_display.insert(0, 'SN', range(1, len(stuntingLevels_display) + 1))
+                        st.dataframe(stuntingLevels_display,hide_index=True,use_container_width=True)
 
                 if 'stuntingClassification' in data['projectLevelInsights']:
                     container = st.container(border=True)
@@ -618,9 +625,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_stunting_classify_metrics)
                     with container.expander("Show Data"):
-                        stuntingClassification.index.name = 'SN'
-                        stuntingClassification.index = stuntingClassification.index + 1
-                        st.dataframe(stuntingClassification,hide_index=False,use_container_width=True)
+                        stuntingClassification = stuntingClassification.sort_values(by='Same_Classifications_%', ascending=False)
+                        stuntingClassification_display = stuntingClassification.copy()
+                        stuntingClassification_display.insert(0, 'SN', range(1, len(stuntingClassification_display) + 1))
+                        st.dataframe(stuntingClassification_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>DISCREPANCY", unsafe_allow_html=True)
 
@@ -630,10 +638,10 @@ def pseudo_code_analysis():
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:5px'>The following graph categorises the projects into red, yellow, and green zones, based on their percentile distribution vis-a-vis discrepancy rates. <br>Projects with the lowest discrepancy rates are likely to be in the green zone, those with the highest discrepancy rates are likely to be in the red zone,<br> and those in-between are likely to be in the yellow-zone", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:15px'>All the cases where the AWT has reported a child to be normal but the Supervisor has reported them to be SAM/MAM/SUW/MUW <br> are considered for discrepancy calculation. This is calculation of AWT's discrepancy in measuring the child", unsafe_allow_html=True)
                     projectDisc = pd.DataFrame(data['projectLevelInsights']['discrepancy'])
+                    projectValidDisc = projectDisc[projectDisc['Zone'] != '']
                     fig_treemap = px.treemap(
-                        projectDisc, 
+                        projectValidDisc, 
                         path=['Proj_Name'], 
-                        values='Discrepancy Rate (%)', 
                         color='Zone',
                         color_discrete_map={'Green': 'green', 'Yellow': 'yellow', 'Red': 'red'},
                         hover_data={
@@ -655,13 +663,14 @@ def pseudo_code_analysis():
                             "Discp. Rate: %{customdata[1]:.1f}%<br>"
                             "Percentile Rank: %{customdata[2]:.1f}%"
                         ),
-                        texttemplate="%{label} <br>Discrepancy Rate: %{value:.1f}%"
+                        texttemplate="%{label} <br>%{customdata[2]:.1f}%"
                     )
                     container.plotly_chart(fig_treemap)
                     with container.expander("Show Data"):
-                        projectDisc.index.name = 'SN'
-                        projectDisc.index = projectDisc.index + 1
-                        st.dataframe(projectDisc,hide_index=False,use_container_width=True)
+                        projectDisc = projectDisc.sort_values(by='Percentile_Rank (%)', ascending=False)
+                        projectDisc_display = projectDisc.copy()
+                        projectDisc_display.insert(0, 'SN', range(1, len(projectDisc_display) + 1))
+                        st.dataframe(projectDisc_display,hide_index=True,use_container_width=True)
                     
             with sector:
                 st.markdown("<h4 style='text-align:center'>Sector-level insights on Nested Supervision intervention", unsafe_allow_html=True)
@@ -691,9 +700,10 @@ def pseudo_code_analysis():
                         )
                         container.plotly_chart(fig_top_12_sectorSameHeight)
                         with container.expander("Show Data"):
-                            sectorSameHeight.index.name = 'SN'
-                            sectorSameHeight.index = sectorSameHeight.index + 1
-                            st.dataframe(sectorSameHeight,hide_index=False,use_container_width=True)
+                            sectorSameHeight = sectorSameHeight.sort_values(by='Exact_Same_Height_%', ascending=False)
+                            sectorSameHeight_display = sectorSameHeight.copy()
+                            sectorSameHeight_display.insert(0, 'SN', range(1, len(sectorSameHeight_display) + 1))
+                            st.dataframe(sectorSameHeight_display,hide_index=True,use_container_width=True)
                 with col2:
                     if 'sameWeight' in data['sectorLevelInsights']:
                         container = st.container(border=True)
@@ -719,9 +729,10 @@ def pseudo_code_analysis():
                         )
                         container.plotly_chart(fig_top_12_sectorSameWeight)
                         with container.expander("Show Data"):
-                            sectorSameWeight.index.name = 'SN'
-                            sectorSameWeight.index = sectorSameWeight.index + 1
-                            st.dataframe(sectorSameWeight,hide_index=False,use_container_width=True)
+                            sectorSameWeight = sectorSameWeight.sort_values(by='Exact_Same_Weight_%', ascending=False)
+                            sectorSameWeight_display = sectorSameWeight.copy()
+                            sectorSameWeight_display.insert(0, 'SN', range(1, len(sectorSameWeight_display) + 1))
+                            st.dataframe(sectorSameWeight_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>WASTING [WEIGHT-FOR-HEIGHT]", unsafe_allow_html=True)
 
@@ -732,8 +743,8 @@ def pseudo_code_analysis():
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:0px'>10 sectors with the highest difference between AWT and Supervisor Wasting %", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:12px;padding-top:0px;padding-bottom:10px'>Note: AWT SAM and AWT Wasting figures are for the re-measurement<br> subset only and not for the entire universe of AWC children", unsafe_allow_html=True)
 
-                    categories = ['AWT_SAM_%', 'AWT_Wasting_%','Supervisor_SAM_%', 'Supervisor_Wasting_%']
-                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    categories = [ 'AWT_Wasting_%', 'Supervisor_Wasting_%']
+                    colors = [ '#0b5394', '#cc0000']
                     top_10_sector_analysis = sectorWastingLevels.nlargest(10, 'Sup-AWT_Difference_%')
                     wasting_table_melted = top_10_sector_analysis.melt(id_vars=['Sec_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
                     fig_wasting_levels = px.bar(
@@ -755,9 +766,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_wasting_levels)
                     with container.expander("Show Data"):
-                        sectorWastingLevels.index.name = 'SN'
-                        sectorWastingLevels.index = sectorWastingLevels.index + 1
-                        st.dataframe(sectorWastingLevels,hide_index=False,use_container_width=True)
+                        sectorWastingLevels = sectorWastingLevels.sort_values(by='Sup-AWT_Difference_%', ascending=False)
+                        sectorWastingLevels_display = sectorWastingLevels.copy()
+                        sectorWastingLevels_display.insert(0, 'SN', range(1, len(sectorWastingLevels_display) + 1))
+                        st.dataframe(sectorWastingLevels_display,hide_index=True,use_container_width=True)
 
                 if 'wastingClassification' in data['sectorLevelInsights']:
                     container = st.container(border=True)
@@ -796,10 +808,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_sectorWastingClassification)
                     with container.expander("Show Data"):
-                        sectorWastingClassification.index.name = 'SN'
-                        sectorWastingClassification.index = sectorWastingClassification.index + 1
-                        st.dataframe(sectorWastingClassification,hide_index=False,use_container_width=True)
-
+                        sectorWastingClassification = sectorWastingClassification.sort_values(by='Same_Classifications_%', ascending=False)
+                        sectorWastingClassification_display = sectorWastingClassification.copy()
+                        sectorWastingClassification_display.insert(0, 'SN', range(1, len(sectorWastingClassification_display) + 1))
+                        st.dataframe(sectorWastingClassification_display,hide_index=True,use_container_width=True)
                 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>UNDERWEIGHT [WEIGHT-FOR-AGE]", unsafe_allow_html=True)
 
@@ -832,9 +844,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_uw_levels)
                     with container.expander("Show Data"):
-                        sectorUnderweightLevels.index.name = 'SN'
-                        sectorUnderweightLevels.index = sectorUnderweightLevels.index + 1
-                        st.dataframe(sectorUnderweightLevels,hide_index=False,use_container_width=True)
+                        sectorUnderweightLevels = sectorUnderweightLevels.sort_values(by='Sup-AWT_Difference_%', ascending=False)
+                        sectorUnderweightLevels_display = sectorUnderweightLevels.copy()
+                        sectorUnderweightLevels_display.insert(0, 'SN', range(1, len(sectorUnderweightLevels_display) + 1))
+                        st.dataframe(sectorUnderweightLevels_display,hide_index=True,use_container_width=True)
                             
                 if 'underweightClassification' in data['sectorLevelInsights']:
                     container = st.container(border=True)
@@ -874,9 +887,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_sectorUnderweightClassification)
                     with container.expander("Show Data"):
-                        sectorUnderweightClassification.index.name = 'SN'
-                        sectorUnderweightClassification.index = sectorUnderweightClassification.index + 1
-                        st.dataframe(sectorUnderweightClassification,hide_index=False,use_container_width=True)
+                        sectorUnderweightClassification = sectorUnderweightClassification.sort_values(by='Same_Classifications_%', ascending=False)
+                        sectorUnderweightClassification_display = sectorUnderweightClassification.copy()
+                        sectorUnderweightClassification_display.insert(0, 'SN', range(1, len(sectorUnderweightClassification_display) + 1))
+                        st.dataframe(sectorUnderweightClassification_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>STUNTING [HEIGHT-FOR-AGE]", unsafe_allow_html=True)
 
@@ -887,8 +901,8 @@ def pseudo_code_analysis():
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:0px'>10 sectors with the highest Supervisor Stunting %", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:12px;margin:1px'>Note: AWT SS and AWT Stunting figures are for the re-measurement<br> subset only and not for the entire universe of AWC children", unsafe_allow_html=True)
                     top_10_sector_analysis = stuntingLevels.nlargest(10, 'Sup_Stunting_%')
-                    categories = ['AWT_SS_%', 'Sup_SS_%', 'AWT_Stunting_%', 'Sup_Stunting_%']
-                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    categories = ['AWT_Stunting_%', 'Sup_Stunting_%']
+                    colors = [ '#0b5394', '#cc0000']
                     stuntingLevels_melted = top_10_sector_analysis.melt(id_vars=['Sec_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
                     fig_ss_levels = px.bar(
                         stuntingLevels_melted,
@@ -917,9 +931,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_ss_levels)
                     with container.expander("Show Data"):
-                        stuntingLevels.index.name = 'SN'
-                        stuntingLevels.index = stuntingLevels.index + 1
-                        st.dataframe(stuntingLevels,hide_index=False,use_container_width=True)
+                        stuntingLevels = stuntingLevels.sort_values(by='Sup_Stunting_%', ascending=False)
+                        stuntingLevels_display = stuntingLevels.copy()
+                        stuntingLevels_display.insert(0, 'SN', range(1, len(stuntingLevels_display) + 1))
+                        st.dataframe(stuntingLevels_display,hide_index=True,use_container_width=True)
 
                 if 'stuntingClassification' in data['sectorLevelInsights']:
                     container = st.container(border=True)
@@ -958,9 +973,10 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_stunting_classify_metrics)
                     with container.expander("Show Data"):
-                        stuntingClassification.index.name = 'SN'
-                        stuntingClassification.index = stuntingClassification.index + 1
-                        st.dataframe(stuntingClassification,hide_index=False,use_container_width=True)
+                        stuntingClassification = stuntingClassification.sort_values(by='Same_Classifications_%', ascending=False)
+                        stuntingClassification_display = stuntingClassification.copy()
+                        stuntingClassification_display.insert(0, 'SN', range(1, len(stuntingClassification_display) + 1))
+                        st.dataframe(stuntingClassification_display,hide_index=True,use_container_width=True)
 
                 st.markdown("<h4 style='text-align:center;background-color:#34a853;color:white;margin-bottom:10px;border-radius:10px'>DISCREPANCY", unsafe_allow_html=True)
 
@@ -970,10 +986,10 @@ def pseudo_code_analysis():
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:5px'>The following graph categorises the projects into red, yellow, and green zones, based on their percentile distribution vis-a-vis discrepancy rates. <br>Projects with the lowest discrepancy rates are likely to be in the green zone, those with the highest discrepancy rates are likely to be in the red zone,<br> and those in-between are likely to be in the yellow-zone", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:15px'>All the cases where the AWT has reported a child to be normal but the Supervisor has reported them to be SAM/MAM/SUW/MUW <br> are considered for discrepancy calculation. This is calculation of AWT's discrepancy in measuring the child", unsafe_allow_html=True)
                     sectorDisc = pd.DataFrame(data['sectorLevelInsights']['discrepancy'])
+                    sectorValidDisc = sectorDisc[sectorDisc['Zone'] != '']
                     fig_treemap = px.treemap(
-                        sectorDisc, 
+                        sectorValidDisc, 
                         path=['Sec_Name'], 
-                        values='Discrepancy Rate (%)', 
                         color='Zone',
                         color_discrete_map={'Green': 'green', 'Yellow': 'yellow', 'Red': 'red'},
                         hover_data={
@@ -995,13 +1011,14 @@ def pseudo_code_analysis():
                             "Discp. Rate: %{customdata[1]:.1f}%<br>"
                             "Percentile Rank: %{customdata[2]:.1f}%"
                         ),
-                        texttemplate="%{label} <br>Discrepancy Rate: %{value:.1f}%"
+                        texttemplate="%{label} <br>%{customdata[2]:.1f}%"
                     )
                     container.plotly_chart(fig_treemap)
                     with container.expander("Show Data"):
-                        sectorDisc.index.name = 'SN'
-                        sectorDisc.index = sectorDisc.index + 1
-                        st.dataframe(sectorDisc,hide_index=False,use_container_width=True)    
+                        sectorDisc = sectorDisc.sort_values(by='Percentile_Rank (%)', ascending=False)
+                        sectorDisc_display = sectorDisc.copy()
+                        sectorDisc_display.insert(0, 'SN', range(1, len(sectorDisc_display) + 1))
+                        st.dataframe(sectorDisc_display,hide_index=True,use_container_width=True)
 
             with awc:
                 st.markdown("<h4 style='text-align:center'>AWC-level insights on Nested Supervision intervention", unsafe_allow_html=True)
@@ -1166,6 +1183,7 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_awcWastingClassification)
                     with container.expander("Show Data"):
+                        awcWastingClassification = awcWastingClassification.sort_values(by='Same_Classifications_%', ascending=False)
                         awcWastingClassification.index.name = 'SN'
                         awcWastingClassification.index = awcWastingClassification.index + 1
                         st.dataframe(awcWastingClassification,hide_index=False,use_container_width=True)
@@ -1242,6 +1260,7 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_awcUnderweightClassification)
                     with container.expander("Show Data"):
+                        awcUnderweightClassification = awcUnderweightClassification.sort_values(by='Same_Classifications_%', ascending=False)
                         awcUnderweightClassification.index.name = 'SN'
                         awcUnderweightClassification.index = awcUnderweightClassification.index + 1
                         st.dataframe(awcUnderweightClassification,hide_index=False,use_container_width=True)
@@ -1255,8 +1274,8 @@ def pseudo_code_analysis():
                     container.markdown("<p style='text-align:center;color:grey;font-size:14px;margin-bottom:0px'>10 awc with the highest Supervisor Stunting %", unsafe_allow_html=True)
                     container.markdown("<p style='text-align:center;color:grey;font-size:12px;margin:1px'>Note: AWT SS and AWT Stunting figures are for the re-measurement<br> subset only and not for the entire universe of AWC children", unsafe_allow_html=True)
                     top_10_sector_analysis = stuntingLevels.nlargest(10, 'Sup_Stunting_%')
-                    categories = ['AWT_SS_%', 'Sup_SS_%', 'AWT_Stunting_%', 'Sup_Stunting_%']
-                    colors = ['#4285f4', '#0b5394', '#e06666', '#cc0000']
+                    categories = [ 'AWT_Stunting_%', 'Sup_Stunting_%']
+                    colors = [ '#0b5394', '#cc0000']
                     stuntingLevels_melted = top_10_sector_analysis.melt(id_vars=['AWC_Name'], value_vars=categories, var_name='Category', value_name='Percentage')
                     fig_ss_levels = px.bar(
                         stuntingLevels_melted,
@@ -1285,6 +1304,7 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_ss_levels)
                     with container.expander("Show Data"):
+                        stuntingLevels = stuntingLevels.sort_values(by='Sup_Stunting_%', ascending=False)
                         stuntingLevels.index.name = 'SN'
                         stuntingLevels.index = stuntingLevels.index + 1
                         st.dataframe(stuntingLevels,hide_index=False,use_container_width=True)
@@ -1326,6 +1346,7 @@ def pseudo_code_analysis():
                     )
                     container.plotly_chart(fig_stunting_classify_metrics)
                     with container.expander("Show Data"):
+                        stuntingClassification = stuntingClassification.sort_values(by='Same_Classifications_%', ascending=False)
                         stuntingClassification.index.name = 'SN'
                         stuntingClassification.index = stuntingClassification.index + 1
                         st.dataframe(stuntingClassification,hide_index=False,use_container_width=True)
@@ -1362,11 +1383,11 @@ def pseudo_code_analysis():
                             st.dataframe(green_zone_df, hide_index=False, use_container_width=True)
 
                     # No Zone – sorted by Total Remeasurements as Percentile_Rank is 0
-                    no_zone_df = awcDisc[awcDisc['Zone'] == ''].sort_values(by='Total_Remeasurements', ascending=False).reset_index(drop=True)
-                    no_zone_df.index = no_zone_df.index + 1
-                    no_zone_df.index.name = 'SN'
-                    with container.expander(f"⚪ No Zone (0% Discrepancy) - {no_zone_df.shape[0]} AWCs"):
-                        st.dataframe(no_zone_df, hide_index=False, use_container_width=True)
+                    # no_zone_df = awcDisc[awcDisc['Zone'] == ''].sort_values(by='Total_Remeasurements', ascending=False).reset_index(drop=True)
+                    # no_zone_df.index = no_zone_df.index + 1
+                    # no_zone_df.index.name = 'SN'
+                    # with container.expander(f"⚪ No Zone (0% Discrepancy) - {no_zone_df.shape[0]} AWCs"):
+                    #     st.dataframe(no_zone_df, hide_index=False, use_container_width=True)
                         
                         
         else:
