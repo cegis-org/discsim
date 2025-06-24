@@ -409,17 +409,17 @@ def analyze_zero_entries(
     return result
 
 
-def apply_invalid_condition(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_invalid_condition(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     if is_numeric_column(series):
-        return apply_numeric_conditions(series, conditions)
+        return apply_numeric_conditions(series, conditions,df)
     elif is_string_column(series):
-        return apply_string_conditions(series, conditions)
+        return apply_string_conditions(series, conditions, df)
     elif is_datetime_column(series):
         return apply_datetime_conditions(series, conditions)
     else:
         raise ValueError("Unsupported column type for invalid condition.")
 
-def apply_numeric_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_numeric_conditions(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     result = {}
     for cond in conditions:
         op = cond['operation']
@@ -444,12 +444,18 @@ def apply_numeric_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[
                 result[label] = series.between(lower, upper, inclusive='both')
             else:
                 raise ValueError(f"'between' operation expects a tuple/list with 2 values. Got: {val}")
+        elif op == "Compare Equals":
+            compare_col = pd.to_numeric(df[val], errors='coerce')
+            result[label] = series == compare_col
+        elif op == "Compare Not Equals":
+            compare_col = pd.to_numeric(df[val], errors='coerce')
+            result[label] = series != compare_col
         else:
             raise ValueError(f"Invalid operation: {op}")
         
     return result
 
-def apply_string_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_string_conditions(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     """
     Apply multiple string invalid conditions on a Series.
 
@@ -470,6 +476,10 @@ def apply_string_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[s
             mask = series == value
         elif operation == "Not equals":
             mask = series != value
+        elif operation == "Compare Equals":
+            mask = series.fillna("").astype(str) == df[value].fillna("").astype(str)
+        elif operation == "Compare Not Equals":
+            mask = series.fillna("").astype(str) != df[value].fillna("").astype(str)
         else:
             raise ValueError(f"Invalid string operation: {operation}")
 
@@ -587,7 +597,7 @@ def indicatorFillRate(
 
     missing = series.isnull()
     zero = (series == 0) if is_numeric_column(series) else pd.Series(False, index=series.index)
-    invalid_masks = apply_invalid_condition(series, invalid_conditions or [])
+    invalid_masks = apply_invalid_condition(series, invalid_conditions or [], df)
     combined_invalid = pd.Series(False, index=series.index)
     rows = [{"Category": "Missing", "Number of observations": missing.sum()}]
     if include_zero_as_separate_category:
@@ -683,7 +693,7 @@ def analyze_indicator_fill_rate(
         zero_mask = (series == 0) if is_numeric_column(series) else pd.Series(False, index=series.index)
 
         # Apply invalid conditions
-        invalid_masks = apply_invalid_condition(series, invalid_conditions or [])
+        invalid_masks = apply_invalid_condition(series, invalid_conditions or [],df)
         combined_invalid_mask = pd.Series(False, index=series.index)
 
         detailed = {}

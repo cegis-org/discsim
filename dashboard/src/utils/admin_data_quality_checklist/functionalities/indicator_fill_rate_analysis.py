@@ -41,10 +41,10 @@ def is_datetime_column(series: pd.Series) -> bool:
     return False
 @st.cache_data
 def get_numeric_operations():
-    return ['<', '<=', '>', '>=', '==', '!=', 'between']
+    return ['<', '<=', '>', '>=', '==', '!=', 'Between', 'Compare Equals', 'Compare Not Equals']
 @st.cache_data
 def get_string_operations():
-    return ['Contains', 'Does not contain', 'Equals', 'Not equals']
+    return ['Contains', 'Does not contain', 'Equals', 'Not equals', 'Compare Equals', 'Compare Not Equals']
 
 def display_detailed_data(data: dict, invalid_labels: list = [None], include_zero_as_separate_category_flag: bool = False):
     categories = ["missing", "valid"]
@@ -140,13 +140,16 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                     label = st.text_input(f"Criteria Name (spaces will be removed)", f"Invalid{i+1}", max_chars=15)
                 with col2:
                     operation = st.selectbox(f"Operation", get_numeric_operations(), key=f"op{i}")
-                if operation == "between":
+                if operation == "Between":
                     col4, col5 = col3.columns(2)
                     with col4:
                         lower = st.number_input(f"Lower bound (inclusive)", key=f"between_low_{i}")
                     with col5:
                         upper = st.number_input(f"Upper bound (inclusive)", key=f"between_high_{i}")
                     value = (lower, upper)
+                elif operation in ["Compare Equals", "Compare Not Equals"]: 
+                        valid_compare_cols = [col for col in df.columns if col != column_to_analyze]
+                        value = col3.selectbox("Select column to compare with", valid_compare_cols, key=f"str_compare_col_{i}")
                 else:
                     with col3:
                         value = st.number_input(f"Value", key=f"val{i}")
@@ -168,6 +171,9 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                 with col3:
                     if operation in ["Contains", "Does not contain"]:
                         value = st.text_input(f"Enter value", key=f"str_val_text_{i}")
+                    elif operation in ["Compare Equals", "Compare Not Equals"]: 
+                        valid_compare_cols = [col for col in df.columns if col != column_to_analyze]
+                        value = st.selectbox("Select column to compare with", valid_compare_cols, key=f"str_compare_col_{i}")
                     else:
                         value = st.selectbox(f"Select value", df[column_to_analyze].dropna().unique().tolist(), key=f"str_val_select_{i}")
 
@@ -218,7 +224,11 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                 
                 if response.status_code == 200:
                     # dataframe_start = time.perf_counter()
-                    result = response.json()
+                    try:
+                        result = response.json()
+                    except ValueError:
+                        st.error("Failed to parse response from the server.")
+
                     invalid_labels = [cond["label"] for cond in invalid_conditions] if invalid_conditions else []
                     
                     if result["grouped"]:
@@ -311,7 +321,7 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                     st.error(f"Error: {response.status_code} - {response.text}")
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
-                st.write("Traceback:", traceback.format_exc())
+                # st.write("Traceback:", traceback.format_exc())
 
             # total_end_time = time.perf_counter()
 
