@@ -596,6 +596,9 @@ def indicatorFillRate(
         raise ValueError(f"Unsupported data type for column: {colName}")
 
     missing = series.isnull()
+    zero = (series == 0) if is_numeric_column(series) else pd.Series(False, index=series.index)
+    invalid_masks = apply_invalid_condition(series, invalid_conditions or [],df)
+    combined_invalid = pd.Series(False, index=series.index)
     rows = [{"Category": "Missing", "Number of observations": missing.sum()}]
     
     invalid_masks = apply_invalid_condition(series, invalid_conditions or [], df)
