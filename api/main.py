@@ -633,8 +633,16 @@ async def indicator_fill_rate(
         df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
 
         # Parse the input data
-        input_data = json.loads(input_data)
-        column_to_analyze = input_data["column_to_analyze"]
+        try:
+            input_data = json.loads(input_data)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON in input_data")
+
+        # Extract required field
+        column_to_analyze = input_data.get("column_to_analyze")
+        if not column_to_analyze:
+            raise HTTPException(status_code=422, detail="'column_to_analyze' is required")
+        
         group_by = input_data.get("group_by")
         filter_by = input_data.get("filter_by")
         invalid_conditions = input_data.get("invalid_conditions", [])

@@ -50,7 +50,7 @@ def display_detailed_data(data: dict, invalid_labels: list = [None], include_zer
     categories = ["missing", "valid"]
     if include_zero_as_separate_category_flag:
         categories.insert(1, "zero")
-    for label in reversed(invalid_labels):
+    for label in (invalid_labels):
         categories.insert(-1, label)
     for category in categories:
         entries = data.get(category, None)
