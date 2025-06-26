@@ -46,6 +46,10 @@ def get_numeric_operations():
 def get_string_operations():
     return ['Contains', 'Does not contain', 'Equals', 'Not equals', 'Compare Equals', 'Compare Not Equals']
 
+@st.cache_data
+def get_datetime_operations():
+    return ['<', '<=', '>', '>=', '==', '!=', 'Between', 'Compare Equals', 'Compare Not Equals']
+
 def display_detailed_data(data: dict, invalid_labels: list = [None], include_zero_as_separate_category_flag: bool = False):
     categories = ["missing", "valid"]
     if include_zero_as_separate_category_flag:
@@ -191,14 +195,26 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                 with col1:
                     label = st.text_input(f"Criteria Name (spaces will be removed)", f"Invalid{i+1}", max_chars=15, key=f"dt_label_{i}")
                 with col2:
-                    start_date = st.date_input(f"Start date (Exclusive)", key=f"dt_start_{i}")
-                with col3:
-                    end_date = st.date_input(f"End date (Inclusive)", key=f"dt_end_{i}")
+                    operation = st.selectbox(f"Operation", get_datetime_operations(), key=f"dt_op_{i}")
+                if operation == "Between":
+                    col4, col5 = col3.columns(2)
+                    with col4:
+                        start_date = st.date_input(f"Start date (Exclusive)", key=f"dt_start_{i}")
+                    with col5:
+                        end_date = st.date_input(f"End date (Inclusive)", key=f"dt_end_{i}")
+                    value = (start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                elif operation in ["Compare Equals", "Compare Not Equals"]: 
+                        valid_compare_cols = [col for col in df.columns if col != column_to_analyze]
+                        value = col3.selectbox("Select column to compare with", valid_compare_cols, key=f"date_compare_col_{i}")
+                else:
+                    with col3:
+                        single_date = st.date_input(f"Select date", key=f"dt_value_{i}")
+                        value = single_date.strftime('%Y-%m-%d')
 
                 invalid_conditions.append({
                     "label": label.strip().replace(" ", ""),
-                    "operation": "between_dates",  # Always fixed operation for datetime
-                    "value": (start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                    "operation": operation,
+                    "value": value
                 })
             include_zero_as_separate_category = False
         else:

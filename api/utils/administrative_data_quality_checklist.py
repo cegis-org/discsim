@@ -415,7 +415,7 @@ def apply_invalid_condition(series: pd.Series, conditions: List[Dict], df: pd.Da
     elif is_string_column(series):
         return apply_string_conditions(series, conditions, df)
     elif is_datetime_column(series):
-        return apply_datetime_conditions(series, conditions)
+        return apply_datetime_conditions(series, conditions, df)
     else:
         raise ValueError("Unsupported column type for invalid condition.")
 
@@ -466,7 +466,7 @@ def apply_string_conditions(series: pd.Series, conditions: List[Dict], df: pd.Da
     for cond in conditions:
         operation = cond["operation"]
         value = cond["value"]
-        label = cond["label"]
+        label = cond.get('label', 'Invalid')
 
         if operation == "Contains":
             mask = series.str.contains(value, na=False)
@@ -489,7 +489,7 @@ def apply_string_conditions(series: pd.Series, conditions: List[Dict], df: pd.Da
 
 
 
-def apply_datetime_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_datetime_conditions(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     """
     Apply multiple datetime invalid conditions on a Series.
 
@@ -501,16 +501,39 @@ def apply_datetime_conditions(series: pd.Series, conditions: List[Dict]) -> Dict
     masks = {}
 
     for cond in conditions:
-        label = cond["label"]
-        start_date_str, end_date_str = cond["value"]
+        val = cond['value']
+        op = cond["operation"]
+        label = cond.get('label', 'Invalid')
 
-        start_date = pd.to_datetime(start_date_str)
-        end_date = pd.to_datetime(end_date_str)
+        if op == "<":
+            masks[label] = series < val
+        elif op == "<=":
+            masks[label] = series <= val
+        elif op == ">":
+            masks[label] = series > val
+        elif op == ">=":
+            masks[label] = series >= val
+        elif op == "==":
+            masks[label] = series == val
+        elif op == "!=":
+            masks[label] = series != val
+        elif op == "between":
+            if isinstance(val, (list, tuple)) and len(val) == 2:
+                start_date_str, end_date_str = val
+                start_date = pd.to_datetime(start_date_str)
+                end_date = pd.to_datetime(end_date_str)
 
-        # Mask for values between start_date (exclusive) and end_date (inclusive)
-        mask = (series > start_date) & (series <= end_date)
-
-        masks[label] = mask
+                masks[label] = (series > start_date) & (series <= end_date)
+            else:
+                raise ValueError(f"'between' operation expects a tuple/list with 2 values. Got: {val}")
+        elif op == "Compare Equals":
+            compare_col = pd.to_datetime(df[val], errors='coerce')
+            masks[label] = series == compare_col
+        elif op == "Compare Not Equals":
+            compare_col = pd.to_datetime(df[val], errors='coerce')
+            masks[label] = series != compare_col
+        else:
+            raise ValueError(f"Invalid operation: {op}")
 
     return masks
 
