@@ -409,77 +409,107 @@ def analyze_zero_entries(
     return result
 
 
-def apply_invalid_condition(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_invalid_condition(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     if is_numeric_column(series):
-        return apply_numeric_conditions(series, conditions)
+        return apply_numeric_conditions(series, conditions,df)
     elif is_string_column(series):
-        return apply_string_conditions(series, conditions)
+        return apply_string_conditions(series, conditions, df)
     elif is_datetime_column(series):
-        return apply_datetime_conditions(series, conditions)
+        return apply_datetime_conditions(series, conditions, df)
     else:
         raise ValueError("Unsupported column type for invalid condition.")
 
-def apply_numeric_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
-    result = {}
+def apply_numeric_conditions(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
+    """
+    Apply multiple numeric invalid conditions on a Series, ensuring mutually exclusive matches based on the first come first serve basis.
+
+    Returns a dictionary {criteria_label: mask_series}, where each row is matched by at most one label.
+    """
+    masks = {}
+    unmatched_mask = pd.Series(True, index=series.index)
+
     for cond in conditions:
         op = cond['operation']
         val = cond['value']
         label = cond.get('label', 'Invalid')
 
+        target_series = series[unmatched_mask]
+        
         if op == "<":
-            result[label] = series < val
+            condition_mask = target_series < val
         elif op == "<=":
-            result[label] = series <= val
+            condition_mask = target_series <= val
         elif op == ">":
-            result[label] = series > val
+            condition_mask = target_series > val
         elif op == ">=":
-            result[label] = series >= val
+            condition_mask = target_series >= val
         elif op == "==":
-            result[label] = series == val
+            condition_mask = target_series == val
         elif op == "!=":
-            result[label] = series != val
+            condition_mask = target_series != val
         elif op == "between":
             if isinstance(val, (list, tuple)) and len(val) == 2:
                 lower, upper = val
-                result[label] = series.between(lower, upper, inclusive='both')
+                condition_mask = target_series.between(lower, upper, inclusive='both')
             else:
                 raise ValueError(f"'between' operation expects a tuple/list with 2 values. Got: {val}")
+        elif op == "Compare Equals":
+            compare_col = pd.to_numeric(df.loc[unmatched_mask, val], errors="coerce")
+            condition_mask = target_series == compare_col
+        elif op == "Compare Not Equals":
+            compare_col = pd.to_numeric(df.loc[unmatched_mask, val], errors="coerce")
+            condition_mask = target_series != compare_col
         else:
             raise ValueError(f"Invalid operation: {op}")
+    
+        full_mask = pd.Series(False, index=series.index)
+        full_mask.loc[condition_mask.index[condition_mask]] = True
+        masks[label] = full_mask
+        unmatched_mask = unmatched_mask & ~full_mask
         
-    return result
+    return masks
 
-def apply_string_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_string_conditions(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     """
     Apply multiple string invalid conditions on a Series.
 
     Returns a dictionary {criteria_label: mask_series}.
     """
+    unmatched_mask = pd.Series(True, index=series.index)
     masks = {}
 
     for cond in conditions:
         operation = cond["operation"]
         value = cond["value"]
-        label = cond["label"]
+        label = cond.get('label', 'Invalid')
+
+        target_series = series[unmatched_mask]
 
         if operation == "Contains":
-            mask = series.str.contains(value, na=False)
+            condition_mask = target_series.str.contains(value, na=False)
         elif operation == "Does not contain":
-            mask = ~series.str.contains(value, na=False)
+            condition_mask = ~target_series.str.contains(value, na=False)
         elif operation == "Equals":
-            mask = series == value
+            condition_mask = target_series == value
         elif operation == "Not equals":
-            mask = series != value
+            condition_mask = target_series != value
+        elif operation == "Compare Equals":
+            condition_mask = target_series.fillna("").astype(str) == df.loc[unmatched_mask, value].fillna("").astype(str)
+        elif operation == "Compare Not Equals":
+            condition_mask = target_series.fillna("").astype(str) != df.loc[unmatched_mask, value].fillna("").astype(str)
         else:
             raise ValueError(f"Invalid string operation: {operation}")
 
-        masks[label] = mask
+        full_mask = pd.Series(False, index=series.index)
+        full_mask.loc[condition_mask.index[condition_mask]] = True
+        masks[label] = full_mask
+        unmatched_mask = unmatched_mask & ~full_mask
 
     return masks
 
 
 
-def apply_datetime_conditions(series: pd.Series, conditions: List[Dict]) -> Dict[str, pd.Series]:
+def apply_datetime_conditions(series: pd.Series, conditions: List[Dict], df: pd.DataFrame) -> Dict[str, pd.Series]:
     """
     Apply multiple datetime invalid conditions on a Series.
 
@@ -489,18 +519,49 @@ def apply_datetime_conditions(series: pd.Series, conditions: List[Dict]) -> Dict
     series = pd.to_datetime(series, errors="coerce")
 
     masks = {}
+    unmatched_mask = pd.Series(True, index=series.index)
 
     for cond in conditions:
-        label = cond["label"]
-        start_date_str, end_date_str = cond["value"]
+        val = cond['value']
+        op = cond["operation"]
+        label = cond.get('label', 'Invalid')
 
-        start_date = pd.to_datetime(start_date_str)
-        end_date = pd.to_datetime(end_date_str)
+        target_series = series[unmatched_mask]
 
-        # Mask for values between start_date (exclusive) and end_date (inclusive)
-        mask = (series > start_date) & (series <= end_date)
+        if op == "<":
+            condition_mask = target_series < val
+        elif op == "<=":
+            condition_mask = target_series <= val
+        elif op == ">":
+            condition_mask = target_series > val
+        elif op == ">=":
+            condition_mask = target_series >= val
+        elif op == "==":
+            condition_mask = target_series == val
+        elif op == "!=":
+            condition_mask = target_series != val
+        elif op == "between":
+            if isinstance(val, (list, tuple)) and len(val) == 2:
+                start_date_str, end_date_str = val
+                start_date = pd.to_datetime(start_date_str)
+                end_date = pd.to_datetime(end_date_str)
 
-        masks[label] = mask
+                condition_mask = (target_series > start_date) & (target_series <= end_date)
+            else:
+                raise ValueError(f"'between' operation expects a tuple/list with 2 values. Got: {val}")
+        elif op == "Compare Equals":
+            compare_col = pd.to_datetime(df.loc[unmatched_mask, val], errors='coerce')
+            condition_mask = target_series == compare_col
+        elif op == "Compare Not Equals":
+            compare_col = pd.to_datetime(df.loc[unmatched_mask, val], errors='coerce')
+            condition_mask = target_series != compare_col
+        else:
+            raise ValueError(f"Invalid operation: {op}")
+        
+        full_mask = pd.Series(False, index=series.index)
+        full_mask.loc[condition_mask.index[condition_mask]] = True
+        masks[label] = full_mask
+        unmatched_mask = unmatched_mask & ~full_mask
 
     return masks
 
@@ -587,10 +648,14 @@ def indicatorFillRate(
 
     missing = series.isnull()
     zero = (series == 0) if is_numeric_column(series) else pd.Series(False, index=series.index)
-    invalid_masks = apply_invalid_condition(series, invalid_conditions or [])
+    invalid_masks = apply_invalid_condition(series, invalid_conditions or [],df)
     combined_invalid = pd.Series(False, index=series.index)
     rows = [{"Category": "Missing", "Number of observations": missing.sum()}]
+    
+    invalid_masks = apply_invalid_condition(series, invalid_conditions or [], df)
+    combined_invalid = pd.Series(False, index=series.index)
     if include_zero_as_separate_category:
+        zero = (series == 0) if is_numeric_column(series) else pd.Series(False, index=series.index)
         rows.append({"Category": "Zero", "Number of observations": zero.sum()})
     for label, mask in invalid_masks.items():
             cleaned_mask = mask & ~missing
@@ -632,27 +697,7 @@ def indicatorFillRateFiltered(
     return indicatorFillRate(df[df[catColumn] == catValue], colName, invalid_condition)
 
 
-def analyze_indicator_fill_rate(
-    df: pd.DataFrame,
-    colName: str,
-    groupBy: Optional[str] = None,
-    filterBy: Optional[Dict[str, str]] = None,
-    invalid_conditions: Optional[List[Dict]] = None,
-    include_zero_as_separate_category: bool = True,
-) -> Dict[str, Union[pd.DataFrame, Dict[str, pd.DataFrame]]]:
-    result = {}
-
-    result["total"] = len(df)
-
-    if filterBy:
-        for col, value in filterBy.items():
-            df = df[df[col] == value]
-        result["total"] = len(df)
-        result["filtered"] = True
-    else:
-        result["filtered"] = False
-
-    def get_detailed_data(
+def get_detailed_data(
         data: pd.DataFrame,
         colName: str,
         invalid_conditions: Optional[List[Dict]] = None,
@@ -683,7 +728,7 @@ def analyze_indicator_fill_rate(
         zero_mask = (series == 0) if is_numeric_column(series) else pd.Series(False, index=series.index)
 
         # Apply invalid conditions
-        invalid_masks = apply_invalid_condition(series, invalid_conditions or [])
+        invalid_masks = apply_invalid_condition(series, invalid_conditions or [],data)
         combined_invalid_mask = pd.Series(False, index=series.index)
 
         detailed = {}
@@ -705,6 +750,25 @@ def analyze_indicator_fill_rate(
 
         return detailed
 
+def analyze_indicator_fill_rate(
+    df: pd.DataFrame,
+    colName: str,
+    groupBy: Optional[str] = None,
+    filterBy: Optional[Dict[str, str]] = None,
+    invalid_conditions: Optional[List[Dict]] = None,
+    include_zero_as_separate_category: bool = True,
+) -> Dict[str, Union[pd.DataFrame, Dict[str, pd.DataFrame]]]:
+    result = {}
+
+    result["total"] = len(df)
+
+    if filterBy:
+        for col, value in filterBy.items():
+            df = df[df[col] == value]
+        result["total"] = len(df)
+        result["filtered"] = True
+    else:
+        result["filtered"] = False
 
     if groupBy:
         result["grouped"] = True
