@@ -25,6 +25,9 @@ if __name__ == "__main__":
             div.st-key-mainContent img{
                   margin-top:8px
             }
+            div[data-testid="stAppViewContainer"] {
+                  pointer-events: auto !important;
+            }
             </style>
             """
             st.markdown(addOncss, unsafe_allow_html=True)

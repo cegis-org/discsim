@@ -120,14 +120,49 @@ def indicator_fill_rate_analysis(uploaded_file, df):
     with col3:
         filter_by_col = st.selectbox("Do you want to analyse only a subset of your data? You can filter your data", ["None"] + df.columns.tolist())
     
-    col31, col32, col33 = st.columns(3)
+    filter_condition = None
     if filter_by_col != "None":
-        with col31:
-            filter_by_value = st.selectbox("Enter the value for which you want the analysis", df[filter_by_col].unique().tolist())
-        with col32:
-            st.write("")
-        with col33:
-            st.write("")
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            if is_numeric_column(df[filter_by_col]):
+                filter_ops = ['<', '<=', '>', '>=', '==', '!=']
+            elif is_string_column(df[filter_by_col]):
+                filter_ops = ['Contains', 'Does not contain', 'Equals', 'Not Equals']
+            elif is_datetime_column(df[filter_by_col]):
+                filter_ops = ['<', '<=', '>', '>=', '==', '!=']
+            else:
+                filter_ops = []
+            
+            filter_operation = st.selectbox("Operation", filter_ops, key="filter_op")
+        
+        with col_f2:
+            if filter_operation == "Between":
+                if is_numeric_column(df[filter_by_col]):
+                    low = st.number_input("Lower Bound", key="filter_between_low")
+                    high = st.number_input("Upper Bound", key="filter_between_high")
+                    filter_value = (low, high)
+                elif is_datetime_column(df[filter_by_col]):
+                    start = st.date_input("Start Date", key="filter_between_start")
+                    end = st.date_input("End Date", key="filter_between_end")
+                    filter_value = (start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+            elif filter_operation in ["Compare Equals", "Compare Not Equals"]:
+                compare_cols = [col for col in df.columns if col != filter_by_col]
+                filter_value = st.selectbox("Compare with column", compare_cols, key="filter_compare_col")
+            else:
+                if is_numeric_column(df[filter_by_col]):
+                    filter_value = st.number_input("Value", key="filter_value")
+                elif is_datetime_column(df[filter_by_col]):
+                    date = st.date_input("Select Date", key="filter_date")
+                    filter_value = date.strftime("%Y-%m-%d")
+                else:  # string
+                    filter_value = st.text_input("Enter Value", key="filter_value_str")
+
+        filter_condition = {
+            "column": filter_by_col,
+            "operation": filter_operation,
+            "value": filter_value
+        }
+
     
     num_conditions = st.number_input("How many invalid conditions? [add up to 3]", min_value=0, max_value=3, value=0, step=1)
     invalid_conditions = []
@@ -231,7 +266,7 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                 payload = {
                     "column_to_analyze": column_to_analyze,
                     "group_by": group_by if group_by != "None" else None,
-                    "filter_by": {filter_by_col: filter_by_value} if filter_by_col != "None" else None,
+                    "filter_by": filter_condition if filter_condition else None,
                     "invalid_conditions": invalid_conditions,
                     "include_zero_as_separate_category": include_zero_as_separate_category
                 }
@@ -252,7 +287,7 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                         st.metric(f"Total number of rows analysed",format(result['total'],',d'),border=True)
 
                         if result["filtered"]:
-                            st.info(f"Results are filtered by {filter_by_col} = {filter_by_value}")
+                            st.info(f"Results are filtered by {filter_by_col}")
 
                         # Prepare data for 100% stacked column chart
                         all_groups_data = []
@@ -291,7 +326,7 @@ def indicator_fill_rate_analysis(uploaded_file, df):
                         st.metric(f"Total number of rows analysed",format(result['total'],',d'),border=True)
 
                         if result["filtered"]:
-                            st.info(f"Results are filtered by {filter_by_col} = {filter_by_value}")
+                            st.info(f"Results are filtered by {filter_by_col}")
 
                         analysis_df = pd.DataFrame(result["analysis"])
                         # Create a simple pie chart of percentages

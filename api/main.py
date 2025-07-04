@@ -657,9 +657,9 @@ async def indicator_fill_rate(
             raise ValueError(f"Group by column '{group_by}' not found in the dataset")
 
         if filter_by:
-            for col in filter_by.keys():
-                if col not in df.columns:
-                    raise ValueError(f"Filter column '{col}' not found in the dataset")
+            filter_column = filter_by.get("column")
+            if filter_column not in df.columns:
+                raise ValueError(f"Filter column '{filter_column}' not found in the dataset")
 
         # Perform the analysis
         result = analyze_indicator_fill_rate(
@@ -691,8 +691,12 @@ async def indicator_fill_rate(
                 return {k: clean_data(v) for k, v in data.items()}
             elif isinstance(data, list):
                 return [clean_data(item) for item in data]
-            elif isinstance(data, float) and (np.isnan(data) or np.isinf(data)):
-                return None
+            elif isinstance(data, float):
+                if np.isnan(data) or np.isinf(data):
+                    return None
+                return float(data) 
+            elif isinstance(data, (np.integer, np.floating)):
+                return data.item()
             elif pd.isna(data):
                 return None
             else:
