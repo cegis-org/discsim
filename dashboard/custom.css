@@ -23,6 +23,10 @@ header div[data-testid="stToolbar"] {
   display: none;
 }
 
+header[data-testid="stHeader"] {
+  z-index: 1 !important;
+}
+
 div[data-testid="stChatMessage"] {
   background-color: transparent;
   z-index: 999999;
@@ -138,6 +142,16 @@ section[data-testid="stMain"] div[data-testid="stForm"] {
   }
   div[data-testid="stSidebarUserContent"] {
     padding-top: 10px;
+  }
+  div.st-key-mainContent img {
+    max-width: 20% !important;
+  }
+  div[data-testid="stSidebarCollapsedControl"] {
+    width: 190px !important;
+    gap: 20px !important;
+  }
+  div[data-testid="stAppViewContainer"] {
+    pointer-events: auto !important;
   }
 }
 div[data-testid="stSidebarCollapsedControl"] {

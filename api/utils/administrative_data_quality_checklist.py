@@ -574,25 +574,35 @@ def is_numeric_column(series):
         and series.str.isnumeric().all()
     )
 
+def check_numeric_column(series):
+    if pd.api.types.is_numeric_dtype(series):
+        return True
+    if series.dtype == "object":
+        try:
+            return series.dropna().str.isnumeric().all()
+        except AttributeError:
+            return False
+    return False
 
 def is_string_column(series):
     return pd.api.types.is_string_dtype(series)
 
 
-def is_datetime_column(series):
+def is_datetime_column(series, sample_size=5):
     if pd.api.types.is_datetime64_any_dtype(series):
         return True
-
-    # Try to parse the first non-null value as a date
-    first_valid = series.first_valid_index()
-    if first_valid is not None:
+    sample = series.dropna().head(sample_size)
+    if sample.empty:
+        return False
+    success = 0
+    for val in sample:
         try:
-            pd.to_datetime(series[first_valid])
-            return True
-        except:
+            parsed = pd.to_datetime(val)
+            if isinstance(parsed, pd.Timestamp):
+                success += 1
+        except Exception:
             pass
-
-    return False
+    return success == len(sample)
 
 
 def parse_dates(df, column):
@@ -763,8 +773,58 @@ def analyze_indicator_fill_rate(
     result["total"] = len(df)
 
     if filterBy:
-        for col, value in filterBy.items():
-            df = df[df[col] == value]
+        col = filterBy["column"]
+        op = filterBy["operation"]
+        val = filterBy["value"]
+        if col not in df.columns:
+            raise ValueError(f"Filter column '{col}' not found in the dataset")
+        
+        if op in ["<", "<=", ">", ">=", "==", "!=", "Between", "Equals", "Not equals"]:
+            if(check_numeric_column(df[col])):
+                try:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                except Exception:
+                    raise ValueError(f"Column '{col}' must be numeric for operation '{op}'")
+            
+            elif(is_datetime_column(df[col])):
+                try:
+                    df[col] = pd.to_datetime(df[col], errors="coerce")
+                    if op != "Between":
+                        val = pd.to_datetime(val)
+                except Exception as e:
+                    raise ValueError(f"Date filter failed: {str(e)}")
+            
+        # Handle different operations
+        if op in ("==", "Equals"):
+            df = df[df[col] == val]
+        elif op in ("!=", "Not Equals"):
+            df = df[df[col] != val]
+        elif op == ">":
+            df = df[df[col] > val]
+        elif op == ">=":
+            df = df[df[col] >= val]
+        elif op == "<":
+            df = df[df[col] < val]
+        elif op == "<=":
+            df = df[df[col] <= val]
+        elif op == "Between":
+            if not isinstance(val, list) or len(val) != 2:
+                raise ValueError("For 'Between', provide a list of two values")
+            lower, upper = val
+            if is_datetime_column(df[col]):
+                lower = pd.to_datetime(lower)
+                upper = pd.to_datetime(upper)
+            df = df[(df[col] >= lower) & (df[col] <= upper)]
+        elif op == "Contains":
+            df = df[df[col].astype(str).str.contains(str(val), na=False)]
+        elif op == "Does not contain":
+            df = df[~df[col].astype(str).str.contains(str(val), na=False)]
+        elif op == "Compare Equals":
+            df = df[df[col] == df[val]]
+        elif op == "Compare Not Equals":
+            df = df[df[col] != df[val]]
+        else:
+            raise ValueError(f"Unsupported filter operation: {op}")
         result["total"] = len(df)
         result["filtered"] = True
     else:
