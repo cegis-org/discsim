@@ -6,6 +6,7 @@ import os
 from src.utils.utility_functions import set_page_config,setFooter,setheader
 import json
 from src.utils.helpers.file_upload import handle_file_upload
+import streamlit.components.v1 as components
 set_page_config()
 
 API_BASE_URL = os.getenv("API_BASE_URL")
@@ -20,9 +21,28 @@ def pseudo_code_analysis():
     uploaded_file = handle_file_upload(
         file_option, category="pseudo_code_analysis"
     )
+    collapse_sidebar = False
     # Upload CSV file
     #uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
     if uploaded_file is not None:
+        collapse_sidebar = True
+
+        if collapse_sidebar:
+            collapse_sidebar_js = """
+            <script>
+            setTimeout(function() {
+                const btn = window.parent.document.querySelector('[data-testid="stBaseButton-headerNoPadding"]');
+                if (window.innerWidth < 768) {
+                    if (btn) {
+                        btn.click();
+                    }
+                }
+            }, 500);
+            </script>
+            """
+            components.html(collapse_sidebar_js, height=0)
+
+
         df = pd.read_csv(uploaded_file)
         columns = df.columns.tolist()
         uploaded_file.seek(0)

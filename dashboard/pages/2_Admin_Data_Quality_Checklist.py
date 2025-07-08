@@ -5,6 +5,7 @@ from src.utils.helpers.file_upload import handle_file_upload
 from src.utils.admin_data_quality_checklist.helpers.functionality_map import execute_functionality, sidebar_functionality_select
 from src.utils.utility_functions import set_page_config,setFooter,setheader
 from src.utils.admin_data_quality_checklist.helpers.about_the_data import abouthepage
+import streamlit.components.v1 as components
 set_page_config()
 
 def admin_data_quality_check():
@@ -32,7 +33,27 @@ def admin_data_quality_check():
 
     uploaded_file = handle_file_upload(file_option, category="admin_data_quality_checklist")
 
+    collapse_sidebar = False
+
+
     if uploaded_file is not None:
+        collapse_sidebar = True
+
+        if collapse_sidebar:
+            collapse_sidebar_js = """
+            <script>
+            setTimeout(function() {
+                const btn = window.parent.document.querySelector('[data-testid="stBaseButton-headerNoPadding"]');
+                if (window.innerWidth < 768) {
+                    if (btn) {
+                        btn.click();
+                    }
+                }
+            }, 500);
+            </script>
+            """
+            components.html(collapse_sidebar_js, height=0)
+
         df = pd.read_csv(uploaded_file)
         st.session_state.uploaded_file = uploaded_file
         if uploaded_file != st.session_state.previous_uploaded_file:
