@@ -23,10 +23,6 @@ header div[data-testid="stToolbar"] {
   display: none;
 }
 
-header[data-testid="stHeader"] {
-  z-index: 1 !important;
-}
-
 div[data-testid="stChatMessage"] {
   background-color: transparent;
   z-index: 999999;
@@ -125,6 +121,9 @@ section[data-testid="stMain"] div[data-testid="stForm"] {
 }
 
 @media only screen and (max-width: 1100px) {
+  header[data-testid="stHeader"] {
+    z-index: 1 !important;
+  }
   div[data-testid="stSidebarNav"] {
     display: block;
   }
