@@ -43,7 +43,7 @@ def admin_data_quality_check():
             collapse_sidebar_js = """
             <script>
             setTimeout(function() {
-                const btn = window.parent.document.querySelector('[data-testid="stBaseButton-headerNoPadding"]');
+                const btn = window.top.document.querySelector('[data-testid="stBaseButton-headerNoPadding"]');
                 if (window.innerWidth < 768) {
                     if (btn) {
                         btn.click();
